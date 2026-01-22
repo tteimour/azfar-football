@@ -6,10 +6,13 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "pages:build": "npx @cloudflare/next-on-pages",
+    "preview": "npm run pages:build && npx wrangler pages dev .vercel/output/static"
   },
   "description": "Azfar Football - Connect players for football matches in Baku",
   "dependencies": {
+    "@cloudflare/next-on-pages": "^1.13.16",
     "@supabase/auth-helpers-nextjs": "^0.15.0",
     "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.91.0",
@@ -17,7 +20,7 @@
     "@types/react": "^19.2.9",
     "autoprefixer": "^10.4.23",
     "lucide-react": "^0.562.0",
-    "next": "^14.2.35",
+    "next": "^15.5.2",
     "postcss": "^8.5.6",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
