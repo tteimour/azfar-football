@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { sendMatchReminder, isEmailConfigured } from '@/lib/email';
 
-export const runtime = 'nodejs';
+export const runtime = 'edge';
 
 interface RoomWithParticipants {
   id: string;
@@ -28,14 +27,6 @@ export async function GET(request: NextRequest) {
 
   if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  // Check if email is configured
-  if (!isEmailConfigured()) {
-    return NextResponse.json({
-      success: false,
-      message: 'Email not configured. Set SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, and EMAIL_FROM environment variables.',
-    });
   }
 
   // Check for required Supabase env vars
@@ -100,7 +91,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({
         success: true,
         message: 'No matches starting in the next 2 hours',
-        emailsSent: 0,
+        notificationsSent: 0,
       });
     }
 
@@ -118,16 +109,9 @@ export async function GET(request: NextRequest) {
       (existingNotifications || []).map(n => `${n.room_id}:${n.user_id}`)
     );
 
-    let emailsSent = 0;
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://zapolya.football';
+    let notificationsSent = 0;
 
     for (const room of eligibleRooms) {
-      const formattedDate = new Date(room.date).toLocaleDateString('en-GB', {
-        weekday: 'long',
-        day: 'numeric',
-        month: 'long',
-      });
-
       for (const participant of room.participants) {
         const user = participant.user;
         if (!user || !user.email) continue;
@@ -136,40 +120,27 @@ export async function GET(request: NextRequest) {
         const key = `${room.id}:${user.id}`;
         if (existingSet.has(key)) continue;
 
-        // Send email
-        const sent = await sendMatchReminder({
-          to: user.email,
-          playerName: user.full_name,
-          matchTitle: room.title,
-          stadiumName: room.stadium_name,
-          stadiumAddress: room.stadium_address || undefined,
-          date: formattedDate,
-          startTime: room.start_time,
-          endTime: room.end_time,
-          roomUrl: `${baseUrl}/rooms/${room.id}`,
+        // Create a notification record in the database
+        const { error: notifError } = await supabase.from('notifications').insert({
+          user_id: user.id,
+          type: 'match_reminder',
+          title: 'Match Reminder',
+          message: `Your match "${room.title}" starts in about 2 hours!`,
+          room_id: room.id,
+          is_read: false,
         });
 
-        if (sent) {
-          emailsSent++;
+        if (!notifError) {
+          notificationsSent++;
           sentNotifications.push({ roomId: room.id, userId: user.id });
-
-          // Create a notification record in the database
-          await supabase.from('notifications').insert({
-            user_id: user.id,
-            type: 'match_reminder',
-            title: 'Match Reminder',
-            message: `Your match "${room.title}" starts in about 2 hours!`,
-            room_id: room.id,
-            is_read: false,
-          });
         }
       }
     }
 
     return NextResponse.json({
       success: true,
-      message: `Sent ${emailsSent} reminder emails`,
-      emailsSent,
+      message: `Sent ${notificationsSent} reminder notifications`,
+      notificationsSent,
       roomsChecked: eligibleRooms.length,
     });
   } catch (error) {
