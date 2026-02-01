@@ -4,7 +4,8 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from './AuthProvider';
-import { Menu, X, User, LogOut, Home, MapPin, Users, Bell } from 'lucide-react';
+import NotificationBadge from './NotificationBadge';
+import { Menu, X, User, LogOut, Home, Users } from 'lucide-react';
 
 export default function Navbar() {
   const { user, logout } = useAuth();
@@ -13,22 +14,21 @@ export default function Navbar() {
 
   const navLinks = [
     { href: '/', label: 'Home', icon: Home },
-    { href: '/stadiums', label: 'Stadiums', icon: MapPin },
     { href: '/rooms', label: 'Matches', icon: Users },
   ];
 
   const isActive = (path: string) => pathname === path;
 
   return (
-    <nav className="bg-gray-900/80 backdrop-blur-md border-b border-gray-800 sticky top-0 z-50">
+    <nav className="bg-white/90 backdrop-blur-md border-b border-gray-200 sticky top-0 z-50 shadow-sm">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-2">
             <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-xl">A</span>
+              <span className="text-white font-bold text-xl">Z</span>
             </div>
-            <span className="text-xl font-bold text-white">Azfar Football</span>
+            <span className="text-xl font-bold text-gray-900">Zapolya Football</span>
           </Link>
 
           {/* Desktop Navigation */}
@@ -51,12 +51,7 @@ export default function Navbar() {
           <div className="hidden md:flex items-center space-x-4">
             {user ? (
               <>
-                <Link
-                  href="/rooms?tab=requests"
-                  className="relative p-2 text-gray-400 hover:text-white transition-colors"
-                >
-                  <Bell className="w-5 h-5" />
-                </Link>
+                <NotificationBadge />
                 <Link
                   href="/profile"
                   className={`flex items-center space-x-2 ${
@@ -68,7 +63,7 @@ export default function Navbar() {
                 </Link>
                 <button
                   onClick={logout}
-                  className="flex items-center space-x-1 text-gray-400 hover:text-red-400 transition-colors"
+                  className="flex items-center space-x-1 text-gray-500 hover:text-red-600 transition-colors"
                 >
                   <LogOut className="w-4 h-4" />
                   <span>Logout</span>
@@ -83,7 +78,7 @@ export default function Navbar() {
 
           {/* Mobile Menu Button */}
           <button
-            className="md:hidden p-2 text-gray-400 hover:text-white"
+            className="md:hidden p-2 text-gray-600 hover:text-gray-900"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
           >
             {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -92,7 +87,7 @@ export default function Navbar() {
 
         {/* Mobile Menu */}
         {isMenuOpen && (
-          <div className="md:hidden py-4 border-t border-gray-800">
+          <div className="md:hidden py-4 border-t border-gray-200">
             <div className="flex flex-col space-y-4">
               {navLinks.map((link) => (
                 <Link

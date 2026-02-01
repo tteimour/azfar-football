@@ -2,15 +2,17 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User } from '@/types';
+import { supabase, isDemoMode } from '@/lib/supabase';
 import { getCurrentUser, setCurrentUser, initializeStore } from '@/lib/store';
+import { getProfile, updateProfile as updateDbProfile, upsertProfile } from '@/lib/database';
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<boolean>;
-  register: (data: RegisterData) => Promise<boolean>;
-  logout: () => void;
-  updateProfile: (updates: Partial<User>) => void;
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  register: (data: RegisterData) => Promise<{ success: boolean; error?: string }>;
+  logout: () => Promise<void>;
+  updateProfile: (updates: Partial<User>) => Promise<void>;
 }
 
 interface RegisterData {
@@ -31,58 +33,169 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    initializeStore();
-    const savedUser = getCurrentUser();
-    setUser(savedUser);
-    setLoading(false);
+    if (isDemoMode) {
+      // Demo mode: use localStorage
+      initializeStore();
+      const savedUser = getCurrentUser();
+      setUser(savedUser);
+      setLoading(false);
+    } else {
+      // Production mode: use Supabase Auth
+      const initAuth = async () => {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session?.user) {
+            const profile = await getProfile(session.user.id);
+            setUser(profile);
+          }
+        } catch (error) {
+          console.error('Error initializing auth:', error);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      initAuth();
+
+      // Listen for auth changes
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+        if (event === 'SIGNED_IN' && session?.user) {
+          // Small delay to allow profile creation to complete during registration
+          await new Promise(resolve => setTimeout(resolve, 100));
+          const profile = await getProfile(session.user.id);
+          if (profile) {
+            setUser(profile);
+          }
+        } else if (event === 'SIGNED_OUT') {
+          setUser(null);
+        }
+      });
+
+      return () => {
+        subscription.unsubscribe();
+      };
+    }
   }, []);
 
-  const login = async (email: string, password: string): Promise<boolean> => {
-    // Demo mode: accept any email/password and create a demo user
-    const demoUser: User = {
-      id: Date.now().toString(),
+  const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
+    if (isDemoMode) {
+      // Demo mode: accept any email/password
+      const demoUser: User = {
+        id: Date.now().toString(),
+        email,
+        full_name: email.split('@')[0],
+        preferred_position: 'any',
+        skill_level: 'intermediate',
+        games_played: 0,
+        created_at: new Date().toISOString(),
+      };
+      setCurrentUser(demoUser);
+      setUser(demoUser);
+      return { success: true };
+    }
+
+    // Production mode: Supabase Auth
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
-      full_name: email.split('@')[0],
-      preferred_position: 'any',
-      skill_level: 'intermediate',
-      games_played: 0,
-      created_at: new Date().toISOString(),
-    };
+      password,
+    });
 
-    setCurrentUser(demoUser);
-    setUser(demoUser);
-    return true;
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    if (data.user) {
+      const profile = await getProfile(data.user.id);
+      setUser(profile);
+    }
+
+    return { success: true };
   };
 
-  const register = async (data: RegisterData): Promise<boolean> => {
-    const newUser: User = {
-      id: Date.now().toString(),
+  const register = async (data: RegisterData): Promise<{ success: boolean; error?: string }> => {
+    if (isDemoMode) {
+      // Demo mode
+      const newUser: User = {
+        id: Date.now().toString(),
+        email: data.email,
+        full_name: data.full_name,
+        phone: data.phone,
+        age: data.age,
+        preferred_position: data.preferred_position,
+        skill_level: data.skill_level,
+        bio: data.bio,
+        games_played: 0,
+        created_at: new Date().toISOString(),
+      };
+      setCurrentUser(newUser);
+      setUser(newUser);
+      return { success: true };
+    }
+
+    // Production mode: Supabase Auth
+    const { data: authData, error: authError } = await supabase.auth.signUp({
       email: data.email,
-      full_name: data.full_name,
-      phone: data.phone,
-      age: data.age,
-      preferred_position: data.preferred_position,
-      skill_level: data.skill_level,
-      bio: data.bio,
-      games_played: 0,
-      created_at: new Date().toISOString(),
-    };
+      password: data.password,
+    });
 
-    setCurrentUser(newUser);
-    setUser(newUser);
-    return true;
+    if (authError) {
+      console.error('Supabase signup error:', authError);
+      return { success: false, error: authError.message };
+    }
+
+    if (authData.user) {
+      // Create profile directly in the profiles table
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .insert({
+          id: authData.user.id,
+          email: data.email,
+          full_name: data.full_name,
+          phone: data.phone || null,
+          age: data.age || null,
+          preferred_position: data.preferred_position,
+          skill_level: data.skill_level,
+          bio: data.bio || null,
+          games_played: 0,
+        })
+        .select()
+        .single();
+
+      if (profileError) {
+        console.error('Profile creation error:', profileError);
+        return { success: false, error: 'Failed to create profile: ' + profileError.message };
+      }
+
+      setUser(profile as User);
+    }
+
+    return { success: true };
   };
 
-  const logout = () => {
-    setCurrentUser(null);
-    setUser(null);
+  const logout = async () => {
+    if (isDemoMode) {
+      setCurrentUser(null);
+      setUser(null);
+    } else {
+      await supabase.auth.signOut();
+      setUser(null);
+    }
+    // Redirect to login page
+    window.location.href = '/auth';
   };
 
-  const updateProfile = (updates: Partial<User>) => {
-    if (user) {
+  const updateProfile = async (updates: Partial<User>) => {
+    if (!user) return;
+
+    if (isDemoMode) {
       const updated = { ...user, ...updates };
       setCurrentUser(updated);
       setUser(updated);
+    } else {
+      const updated = await updateDbProfile(user.id, updates);
+      if (updated) {
+        setUser(updated);
+      }
     }
   };
 

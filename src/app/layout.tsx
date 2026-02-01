@@ -7,8 +7,8 @@ import { AuthProvider } from '@/components/AuthProvider';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Azfar Football - Find Players for Your Match',
-  description: 'Connect with football players in Baku. Join matches at Azfar Holding stadiums.',
+  title: 'Zapolya Football - Find Players for Your Match',
+  description: 'Connect with football players in Baku. Join matches at premium artificial turf stadiums.',
 };
 
 export default function RootLayout({

@@ -1,16 +1,18 @@
 'use client';
 
-import { User, Room, JoinRequest, RoomParticipant } from '@/types';
+import { User, Room, JoinRequest, RoomParticipant, PlayerStats, PlayerRating } from '@/types';
 import { sampleStadiums, sampleRooms, sampleUsers } from './sample-data';
 
 // Simple in-memory store for demo purposes
 // In production, this would be replaced with Supabase queries
 
 const STORAGE_KEYS = {
-  USER: 'azfar_current_user',
-  ROOMS: 'azfar_rooms',
-  REQUESTS: 'azfar_requests',
-  PARTICIPANTS: 'azfar_participants',
+  USER: 'zapolya_current_user',
+  ROOMS: 'zapolya_rooms',
+  REQUESTS: 'zapolya_requests',
+  PARTICIPANTS: 'zapolya_participants',
+  PLAYER_STATS: 'zapolya_player_stats',
+  PLAYER_RATINGS: 'zapolya_player_ratings',
 };
 
 // Initialize data in localStorage if not present
@@ -69,15 +71,43 @@ export function getRoom(id: string): Room | null {
   return rooms.find(r => r.id === id) || null;
 }
 
-export function createRoom(room: Omit<Room, 'id' | 'created_at' | 'current_players' | 'status'>): Room {
+export function createRoom(room: {
+  title: string;
+  description?: string;
+  stadium_id?: string;
+  stadium_name: string;
+  stadium_address?: string;
+  stadium_price_per_hour?: number;
+  stadium_latitude?: number;
+  stadium_longitude?: number;
+  creator_id: string;
+  date: string;
+  start_time: string;
+  end_time: string;
+  max_players: number;
+  skill_level_required: string;
+}): Room {
   const rooms = getRooms();
   const newRoom: Room = {
-    ...room,
     id: Date.now().toString(),
+    title: room.title,
+    description: room.description,
+    stadium_id: room.stadium_id,
+    stadium_name: room.stadium_name,
+    stadium_address: room.stadium_address,
+    stadium_price_per_hour: room.stadium_price_per_hour,
+    stadium_latitude: room.stadium_latitude,
+    stadium_longitude: room.stadium_longitude,
+    creator_id: room.creator_id,
+    date: room.date,
+    start_time: room.start_time,
+    end_time: room.end_time,
+    max_players: room.max_players,
+    skill_level_required: room.skill_level_required as Room['skill_level_required'],
     current_players: 1,
     status: 'open',
     created_at: new Date().toISOString(),
-    stadium: sampleStadiums.find(s => s.id === room.stadium_id),
+    stadium: room.stadium_id ? sampleStadiums.find(s => s.id === room.stadium_id) : undefined,
   };
   rooms.push(newRoom);
   localStorage.setItem(STORAGE_KEYS.ROOMS, JSON.stringify(rooms));
@@ -212,4 +242,133 @@ export function getStadiums() {
 
 export function getStadium(id: string) {
   return sampleStadiums.find(s => s.id === id);
+}
+
+// ============ Player Stats Functions ============
+
+function getPlayerStatsStore(): Map<string, PlayerStats> {
+  if (typeof window === 'undefined') return new Map();
+  const data = localStorage.getItem(STORAGE_KEYS.PLAYER_STATS);
+  if (!data) return new Map();
+  const parsed = JSON.parse(data);
+  return new Map(Object.entries(parsed));
+}
+
+function savePlayerStatsStore(store: Map<string, PlayerStats>) {
+  const obj: Record<string, PlayerStats> = {};
+  store.forEach((value, key) => {
+    obj[key] = value;
+  });
+  localStorage.setItem(STORAGE_KEYS.PLAYER_STATS, JSON.stringify(obj));
+}
+
+export function getPlayerStats(userId: string): PlayerStats | null {
+  const store = getPlayerStatsStore();
+  return store.get(userId) || null;
+}
+
+export function getTopPlayers(limit: number = 10): (PlayerStats & { user?: User })[] {
+  const store = getPlayerStatsStore();
+  const stats = Array.from(store.values())
+    .filter(s => s.total_ratings > 0)
+    .sort((a, b) => b.overall - a.overall)
+    .slice(0, limit);
+
+  // Attach user data (would need to look up from demo users)
+  return stats.map(s => ({
+    ...s,
+    user: getCurrentUser()?.id === s.user_id ? getCurrentUser() || undefined : undefined,
+  }));
+}
+
+// ============ Player Rating Functions ============
+
+function getPlayerRatingsStore(): PlayerRating[] {
+  if (typeof window === 'undefined') return [];
+  const data = localStorage.getItem(STORAGE_KEYS.PLAYER_RATINGS);
+  return data ? JSON.parse(data) : [];
+}
+
+function savePlayerRatingsStore(ratings: PlayerRating[]) {
+  localStorage.setItem(STORAGE_KEYS.PLAYER_RATINGS, JSON.stringify(ratings));
+}
+
+function updatePlayerStatsFromRatings(userId: string) {
+  const ratings = getPlayerRatingsStore().filter(r => r.rated_id === userId);
+  if (ratings.length === 0) return;
+
+  const avgPace = Math.round(ratings.reduce((sum, r) => sum + r.pace, 0) / ratings.length);
+  const avgShooting = Math.round(ratings.reduce((sum, r) => sum + r.shooting, 0) / ratings.length);
+  const avgPassing = Math.round(ratings.reduce((sum, r) => sum + r.passing, 0) / ratings.length);
+  const avgDribbling = Math.round(ratings.reduce((sum, r) => sum + r.dribbling, 0) / ratings.length);
+  const avgDefense = Math.round(ratings.reduce((sum, r) => sum + r.defense, 0) / ratings.length);
+  const avgPhysical = Math.round(ratings.reduce((sum, r) => sum + r.physical, 0) / ratings.length);
+  const overall = Math.round((avgPace + avgShooting + avgPassing + avgDribbling + avgDefense + avgPhysical) / 6);
+
+  const store = getPlayerStatsStore();
+  const existingStats = store.get(userId);
+
+  const updatedStats: PlayerStats = {
+    id: existingStats?.id || Date.now().toString(),
+    user_id: userId,
+    pace: avgPace,
+    shooting: avgShooting,
+    passing: avgPassing,
+    dribbling: avgDribbling,
+    defense: avgDefense,
+    physical: avgPhysical,
+    overall,
+    total_ratings: ratings.length,
+    created_at: existingStats?.created_at || new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+
+  store.set(userId, updatedStats);
+  savePlayerStatsStore(store);
+}
+
+export function submitRating(
+  roomId: string,
+  raterId: string,
+  ratedId: string,
+  rating: {
+    pace: number;
+    shooting: number;
+    passing: number;
+    dribbling: number;
+    defense: number;
+    physical: number;
+  }
+): PlayerRating {
+  const ratings = getPlayerRatingsStore();
+
+  const newRating: PlayerRating = {
+    id: Date.now().toString(),
+    room_id: roomId,
+    rater_id: raterId,
+    rated_id: ratedId,
+    ...rating,
+    created_at: new Date().toISOString(),
+  };
+
+  ratings.push(newRating);
+  savePlayerRatingsStore(ratings);
+
+  // Update player stats
+  updatePlayerStatsFromRatings(ratedId);
+
+  return newRating;
+}
+
+export function hasUserRatedInRoom(userId: string, roomId: string): boolean {
+  const ratings = getPlayerRatingsStore();
+  return ratings.some(r => r.rater_id === userId && r.room_id === roomId);
+}
+
+export function getRatingsForPlayer(userId: string): PlayerRating[] {
+  return getPlayerRatingsStore().filter(r => r.rated_id === userId);
+}
+
+export function getRatingsForRoom(roomId: string): PlayerRating[] {
+  return getPlayerRatingsStore().filter(r => r.room_id === roomId);
 }

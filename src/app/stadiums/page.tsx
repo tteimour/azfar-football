@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { getStadiums, getRooms } from '@/lib/store';
+import { getStadiums, getRooms } from '@/lib/data';
 import { Stadium, Room } from '@/types';
 import Link from 'next/link';
 import { MapPin, Users, Car, Coffee, Lightbulb, ShowerHead, Building, Calendar } from 'lucide-react';
@@ -17,15 +17,38 @@ const amenityIcons: Record<string, React.ReactNode> = {
 export default function StadiumsPage() {
   const [stadiums, setStadiums] = useState<Stadium[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setStadiums(getStadiums());
-    setRooms(getRooms().filter(r => r.status === 'open'));
+    const loadData = async () => {
+      try {
+        const [stadiumsData, roomsData] = await Promise.all([
+          getStadiums(),
+          getRooms(),
+        ]);
+        setStadiums(stadiumsData);
+        setRooms(roomsData.filter(r => r.status === 'open'));
+      } catch (error) {
+        console.error('Error loading data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
   }, []);
 
   const getUpcomingMatchesCount = (stadiumId: string) => {
     return rooms.filter(r => r.stadium_id === stadiumId).length;
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">

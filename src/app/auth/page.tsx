@@ -34,11 +34,11 @@ export default function AuthPage() {
     setError('');
 
     try {
-      const success = await login(loginEmail, loginPassword);
-      if (success) {
+      const result = await login(loginEmail, loginPassword);
+      if (result.success) {
         router.push('/');
       } else {
-        setError('Login failed. Please try again.');
+        setError(result.error || 'Login failed. Please try again.');
       }
     } catch {
       setError('An error occurred. Please try again.');
@@ -53,7 +53,7 @@ export default function AuthPage() {
     setError('');
 
     try {
-      const success = await register({
+      const result = await register({
         email: regEmail,
         password: regPassword,
         full_name: regName,
@@ -64,10 +64,10 @@ export default function AuthPage() {
         bio: regBio || undefined,
       });
 
-      if (success) {
+      if (result.success) {
         router.push('/');
       } else {
-        setError('Registration failed. Please try again.');
+        setError(result.error || 'Registration failed. Please try again.');
       }
     } catch {
       setError('An error occurred. Please try again.');
@@ -80,13 +80,13 @@ export default function AuthPage() {
     <div className="max-w-md mx-auto">
       <div className="card">
         {/* Tabs */}
-        <div className="flex border-b border-gray-700 mb-6">
+        <div className="flex border-b border-gray-200 mb-6">
           <button
             onClick={() => setTab('login')}
             className={`flex-1 py-3 text-center font-medium transition-colors ${
               tab === 'login'
-                ? 'text-green-500 border-b-2 border-green-500'
-                : 'text-gray-400 hover:text-white'
+                ? 'text-green-600 border-b-2 border-green-600'
+                : 'text-gray-500 hover:text-gray-700'
             }`}
           >
             Login
@@ -95,8 +95,8 @@ export default function AuthPage() {
             onClick={() => setTab('register')}
             className={`flex-1 py-3 text-center font-medium transition-colors ${
               tab === 'register'
-                ? 'text-green-500 border-b-2 border-green-500'
-                : 'text-gray-400 hover:text-white'
+                ? 'text-green-600 border-b-2 border-green-600'
+                : 'text-gray-500 hover:text-gray-700'
             }`}
           >
             Register
@@ -104,7 +104,7 @@ export default function AuthPage() {
         </div>
 
         {error && (
-          <div className="mb-4 p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-400 text-sm">
+          <div className="mb-4 p-3 bg-red-100 border border-red-300 rounded-lg text-red-600 text-sm">
             {error}
           </div>
         )}
@@ -146,9 +146,6 @@ export default function AuthPage() {
             >
               {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <span>Login</span>}
             </button>
-            <p className="text-center text-gray-400 text-sm">
-              Demo mode: Any email/password will work
-            </p>
           </form>
         ) : (
           <form onSubmit={handleRegister} className="space-y-4">

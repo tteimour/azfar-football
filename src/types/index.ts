@@ -28,8 +28,14 @@ export interface Stadium {
 export interface Room {
   id: string;
   title: string;
-  stadium_id: string;
+  stadium_id?: string;
   stadium?: Stadium;
+  // Inline stadium fields (for custom stadium entry)
+  stadium_name: string;
+  stadium_address?: string;
+  stadium_price_per_hour?: number;
+  stadium_latitude?: number;
+  stadium_longitude?: number;
   creator_id: string;
   creator?: User;
   date: string;
@@ -60,4 +66,57 @@ export interface RoomParticipant {
   user_id: string;
   user?: User;
   joined_at: string;
+}
+
+export interface PlayerStats {
+  id: string;
+  user_id: string;
+  pace: number;
+  shooting: number;
+  passing: number;
+  dribbling: number;
+  defense: number;
+  physical: number;
+  overall: number;
+  total_ratings: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PlayerRating {
+  id: string;
+  room_id: string;
+  rater_id: string;
+  rated_id: string;
+  pace: number;
+  shooting: number;
+  passing: number;
+  dribbling: number;
+  defense: number;
+  physical: number;
+  created_at: string;
+}
+
+export type NotificationType = 'join_request' | 'request_approved' | 'request_rejected' | 'match_reminder' | 'match_completed';
+
+export interface Notification {
+  id: string;
+  user_id: string;
+  type: NotificationType;
+  title: string;
+  message?: string;
+  room_id?: string;
+  related_user_id?: string;
+  related_user?: User;
+  is_read: boolean;
+  created_at: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  room_id: string;
+  user_id: string;
+  user?: User;
+  message: string;
+  created_at: string;
 }
