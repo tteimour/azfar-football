@@ -14,6 +14,7 @@ const STORAGE_KEYS = {
   PLAYER_STATS: 'tapadam_player_stats',
   PLAYER_RATINGS: 'tapadam_player_ratings',
   WAITLIST: 'tapadam_waitlist',
+  USERS_REGISTRY: 'tapadam_users_registry',
 };
 
 // Initialize data in localStorage if not present
@@ -46,6 +47,42 @@ export function initializeStore() {
   }
 }
 
+// Generate a stable ID from email so the same user always gets the same ID
+export function generateStableId(email: string): string {
+  let hash = 0;
+  const str = email.toLowerCase();
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) - hash) + str.charCodeAt(i);
+    hash |= 0;
+  }
+  return `demo_${Math.abs(hash).toString(36)}`;
+}
+
+// Registry maps email → User so re-logins restore the same user object
+export function getUserByEmail(email: string): User | null {
+  if (typeof window === 'undefined') return null;
+  const data = localStorage.getItem(STORAGE_KEYS.USERS_REGISTRY);
+  if (!data) return null;
+  const registry: Record<string, User> = JSON.parse(data);
+  return registry[email.toLowerCase()] || null;
+}
+
+export function registerUserInRegistry(user: User) {
+  if (typeof window === 'undefined') return;
+  const data = localStorage.getItem(STORAGE_KEYS.USERS_REGISTRY);
+  const registry: Record<string, User> = data ? JSON.parse(data) : {};
+  registry[user.email.toLowerCase()] = user;
+  localStorage.setItem(STORAGE_KEYS.USERS_REGISTRY, JSON.stringify(registry));
+}
+
+export function updateUserInRegistry(updates: Partial<User> & { email: string }) {
+  if (typeof window === 'undefined') return;
+  const existing = getUserByEmail(updates.email);
+  if (!existing) return;
+  const updated = { ...existing, ...updates };
+  registerUserInRegistry(updated);
+}
+
 // User functions
 export function getCurrentUser(): User | null {
   if (typeof window === 'undefined') return null;
@@ -70,13 +107,27 @@ export function updateCurrentUser(updates: Partial<User>): User | null {
   return updated;
 }
 
-export function getPublicProfile(userId: string): User | null {
-  // In demo mode, check if it's the current user
+export function getUserById(userId: string): User | null {
+  // Check current user
   const currentUser = getCurrentUser();
   if (currentUser?.id === userId) return currentUser;
   // Check sample users
   const sampleUser = sampleUsers.find(u => u.id === userId);
-  return sampleUser || null;
+  if (sampleUser) return sampleUser;
+  // Scan the users registry by ID
+  if (typeof window !== 'undefined') {
+    const data = localStorage.getItem(STORAGE_KEYS.USERS_REGISTRY);
+    if (data) {
+      const registry: Record<string, User> = JSON.parse(data);
+      const found = Object.values(registry).find(u => u.id === userId);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+export function getPublicProfile(userId: string): User | null {
+  return getUserById(userId);
 }
 
 // Room functions
@@ -84,10 +135,11 @@ export function getRooms(): Room[] {
   if (typeof window === 'undefined') return sampleRooms;
   const data = localStorage.getItem(STORAGE_KEYS.ROOMS);
   const rooms = data ? JSON.parse(data) : sampleRooms;
-  // Attach stadium data
+  // Attach stadium and creator data
   return rooms.map((room: Room) => ({
     ...room,
     stadium: sampleStadiums.find(s => s.id === room.stadium_id),
+    creator: getUserById(room.creator_id) || undefined,
   }));
 }
 
@@ -229,7 +281,12 @@ export function getParticipants(roomId: string): RoomParticipant[] {
   if (typeof window === 'undefined') return [];
   const data = localStorage.getItem(STORAGE_KEYS.PARTICIPANTS);
   const all = data ? JSON.parse(data) : [];
-  return all.filter((p: RoomParticipant) => p.room_id === roomId);
+  return all
+    .filter((p: RoomParticipant) => p.room_id === roomId)
+    .map((p: RoomParticipant) => ({
+      ...p,
+      user: getUserById(p.user_id) || undefined,
+    }));
 }
 
 export function addParticipant(roomId: string, userId: string): RoomParticipant {

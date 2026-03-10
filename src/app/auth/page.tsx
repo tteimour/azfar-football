@@ -169,31 +169,47 @@ function AuthPageContent() {
     <div className="min-h-[calc(100vh-80px)] flex items-center justify-center px-4 py-8">
       {/* Background decorative elements */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 -left-32 w-64 h-64 rounded-full bg-neon-green/5 blur-3xl" />
-        <div className="absolute bottom-1/4 -right-32 w-64 h-64 rounded-full bg-neon-cyan/5 blur-3xl" />
+        <div className="absolute top-1/4 -left-32 w-96 h-96 rounded-full bg-neon-green/5 blur-[120px]" />
+        <div className="absolute bottom-1/4 -right-32 w-96 h-96 rounded-full bg-neon-cyan/5 blur-[120px]" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] rounded-full bg-neon-green/5 blur-[180px]" />
+        {/* Subtle grid */}
+        <div
+          className="absolute inset-0 opacity-[0.015]"
+          style={{
+            backgroundImage: `linear-gradient(rgba(0,255,136,0.4) 1px, transparent 1px), linear-gradient(90deg, rgba(0,255,136,0.4) 1px, transparent 1px)`,
+            backgroundSize: '80px 80px',
+          }}
+        />
       </div>
 
       <div className="w-full max-w-md relative z-10">
         {/* Header */}
         <div className="text-center mb-8 animate-fade-in">
+          {/* Football emoji accent */}
+          <div className="w-14 h-14 mx-auto mb-4 rounded-2xl flex items-center justify-center text-2xl" style={{ background: 'rgba(0,255,136,0.1)', border: '1px solid rgba(0,255,136,0.2)', boxShadow: '0 0 20px rgba(0,255,136,0.1)' }}>
+            ⚽
+          </div>
           <h1 className="text-3xl font-heading font-bold text-white mb-2">
-            Welcome to <span className="text-gradient">Tapadam</span>
+            Welcome to <span className="text-gradient-animated">Tapadam</span>
           </h1>
-          <p className="text-sm text-gray-400">
+          <p className="text-sm text-white/40">
             Find players, join matches, dominate the pitch
           </p>
         </div>
 
         {/* Glass card */}
-        <div className="glass rounded-2xl p-6 shadow-card animate-slide-up">
+        <div className="auth-card glass rounded-2xl p-6 shadow-card animate-slide-up" style={{ borderColor: 'rgba(0,255,136,0.08)', boxShadow: '0 0 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(0,255,136,0.06)' }}>
           {/* Tab Switcher with sliding indicator */}
-          <div className="relative flex mb-6 rounded-lg bg-dark-950/50 p-1">
+          <div className="relative flex mb-6 rounded-xl p-1" style={{ background: 'rgba(10,14,26,0.7)', border: '1px solid rgba(255,255,255,0.06)' }}>
             {/* Sliding background indicator */}
             <div
-              className="absolute top-1 bottom-1 rounded-md bg-neon-green/20 border border-neon-green/30 shadow-glow-green-sm transition-all duration-300 ease-out"
+              className="absolute top-1 bottom-1 rounded-lg transition-all duration-300 ease-out"
               style={{
                 left: tab === 'login' ? '4px' : '50%',
                 width: 'calc(50% - 4px)',
+                background: 'linear-gradient(135deg, rgba(0,255,136,0.15) 0%, rgba(0,212,255,0.08) 100%)',
+                border: '1px solid rgba(0,255,136,0.25)',
+                boxShadow: '0 0 12px rgba(0,255,136,0.08)',
               }}
             />
             <button
@@ -332,9 +348,10 @@ function AuthPageContent() {
 
                 {/* Personal Info */}
                 <div className="space-y-3">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-neon-green/70">
-                    Personal Info
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <div className="w-1 h-3.5 rounded-full bg-neon-green" style={{ boxShadow: '0 0 6px rgba(0,255,136,0.5)' }} />
+                    <p className="text-xs font-bold uppercase tracking-widest text-neon-green/70">Personal Info</p>
+                  </div>
                   <div>
                     <label className="label">Full Name *</label>
                     <div className="relative">
@@ -421,10 +438,11 @@ function AuthPageContent() {
                 </div>
 
                 {/* Game Info */}
-                <div className="space-y-3 pt-2 border-t border-white/5">
-                  <p className="text-xs font-semibold uppercase tracking-wider text-neon-green/70">
-                    Game Info
-                  </p>
+                <div className="space-y-3 pt-4 border-t border-white/5">
+                  <div className="flex items-center gap-2">
+                    <div className="w-1 h-3.5 rounded-full bg-neon-cyan" style={{ boxShadow: '0 0 6px rgba(0,212,255,0.5)' }} />
+                    <p className="text-xs font-bold uppercase tracking-widest text-neon-cyan/70">Game Info</p>
+                  </div>
                   <div>
                     <label className="label">Preferred Position</label>
                     <div className="relative">
@@ -502,9 +520,9 @@ function AuthPageContent() {
 
           {/* OAuth Divider */}
           <div className="flex items-center gap-3 my-5">
-            <div className="flex-1 h-px bg-white/10" />
-            <span className="text-xs text-gray-500 uppercase tracking-wider">or continue with</span>
-            <div className="flex-1 h-px bg-white/10" />
+            <div className="flex-1 h-px" style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.1))' }} />
+            <span className="text-[10px] text-white/25 uppercase tracking-widest font-semibold">or continue with</span>
+            <div className="flex-1 h-px" style={{ background: 'linear-gradient(90deg, rgba(255,255,255,0.1), transparent)' }} />
           </div>
 
           {/* OAuth Buttons */}
@@ -567,7 +585,7 @@ function AuthPageContent() {
         </div>
 
         {/* Footer text */}
-        <p className="text-center text-xs text-gray-600 mt-6">
+        <p className="text-center text-[11px] text-white/20 mt-6">
           By continuing, you agree to the Tapadam Terms of Service
         </p>
       </div>

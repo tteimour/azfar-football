@@ -295,3 +295,199 @@ body {
     background-position: 200% 0;
   }
 }
+
+@keyframes gradientShift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes livePulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(0, 255, 136, 0.6);
+    opacity: 1;
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(0, 255, 136, 0);
+    opacity: 0.7;
+  }
+}
+
+@keyframes borderGlow {
+  0%, 100% {
+    border-color: rgba(0, 255, 136, 0.2);
+    box-shadow: 0 0 8px rgba(0, 255, 136, 0.05);
+  }
+  50% {
+    border-color: rgba(0, 255, 136, 0.5);
+    box-shadow: 0 0 20px rgba(0, 255, 136, 0.15);
+  }
+}
+
+/* ========================================
+   Additional Component Styles
+   ======================================== */
+
+@layer components {
+  /* ---- Animated Gradient Text ---- */
+  .text-gradient-animated {
+    background: linear-gradient(135deg, #00ff88 0%, #00d4ff 40%, #ffaa00 70%, #00ff88 100%);
+    background-size: 200% 200%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: gradientShift 4s ease infinite;
+  }
+
+  /* ---- Live Indicator Dot ---- */
+  .live-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #00ff88;
+    animation: livePulse 2s ease-in-out infinite;
+  }
+
+  /* ---- Section Divider with Icon ---- */
+  .section-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .section-divider::before,
+  .section-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(0, 255, 136, 0.3), transparent);
+  }
+
+  /* ---- Card with hover lift ---- */
+  .card-hover {
+    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+  }
+  .card-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(0, 255, 136, 0.15), 0 0 30px rgba(0, 255, 136, 0.08);
+    border-color: rgba(0, 255, 136, 0.2);
+  }
+
+  /* ---- Gradient Border Card ---- */
+  .card-gradient-border {
+    position: relative;
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 0.75rem;
+  }
+  .card-gradient-border::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 0.75rem;
+    padding: 1px;
+    background: linear-gradient(135deg, rgba(0,255,136,0.15) 0%, rgba(0,212,255,0.1) 50%, rgba(0,255,136,0.05) 100%);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: destination-out;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+  .card-gradient-border:hover::before {
+    background: linear-gradient(135deg, rgba(0,255,136,0.4) 0%, rgba(0,212,255,0.3) 50%, rgba(0,255,136,0.2) 100%);
+  }
+
+  /* ---- Stat Pill ---- */
+  .stat-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 9999px;
+    background: rgba(0, 255, 136, 0.08);
+    border: 1px solid rgba(0, 255, 136, 0.12);
+    font-size: 0.75rem;
+    color: rgba(0, 255, 136, 0.8);
+    font-weight: 600;
+  }
+
+  /* ---- Section Header with decorative line ---- */
+  .section-heading {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .section-heading::after {
+    content: '';
+    display: block;
+    width: 40px;
+    height: 2px;
+    background: linear-gradient(90deg, #00ff88, transparent);
+    border-radius: 1px;
+  }
+
+  /* ---- Glowing Player count circle ---- */
+  .player-avatar-slot {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(0, 255, 136, 0.08);
+    border: 1.5px solid rgba(0, 255, 136, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: -8px;
+    transition: transform 0.2s ease;
+  }
+  .player-avatar-slot:first-child {
+    margin-left: 0;
+  }
+  .player-avatar-slot:hover {
+    transform: translateY(-2px);
+    z-index: 10;
+  }
+
+  /* ---- Hero badge (live indicator) ---- */
+  .hero-live-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 16px 6px 10px;
+    border-radius: 9999px;
+    background: rgba(0, 255, 136, 0.08);
+    border: 1px solid rgba(0, 255, 136, 0.2);
+    backdrop-filter: blur(8px);
+  }
+
+  /* ---- Info Grid Cell ---- */
+  .info-cell {
+    border-radius: 0.625rem;
+    padding: 1rem;
+    background: rgba(15, 22, 41, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    transition: border-color 0.2s ease, background 0.2s ease;
+  }
+  .info-cell:hover {
+    background: rgba(15, 22, 41, 0.8);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+
+  /* ---- Auth card sparkle effect ---- */
+  .auth-card {
+    position: relative;
+    overflow: hidden;
+  }
+  .auth-card::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(ellipse at 50% 0%, rgba(0,255,136,0.03) 0%, transparent 60%);
+    pointer-events: none;
+  }
+}

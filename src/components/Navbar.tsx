@@ -15,6 +15,8 @@ import {
   MapPin,
   Shield,
   PlusCircle,
+  FileText,
+  Lock,
 } from 'lucide-react';
 
 export default function Navbar() {
@@ -294,6 +296,26 @@ export default function Navbar() {
               Login
             </Link>
           )}
+
+          {/* Legal Links */}
+          <div className="border-t border-white/5 mt-3 pt-3 space-y-1">
+            <Link
+              href="/terms"
+              className="flex items-center space-x-3 px-4 py-2 rounded-lg text-xs text-white/30 hover:text-white/60 hover:bg-white/5 transition-all duration-200"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              <FileText className="w-4 h-4" />
+              <span>Terms of Service</span>
+            </Link>
+            <Link
+              href="/privacy"
+              className="flex items-center space-x-3 px-4 py-2 rounded-lg text-xs text-white/30 hover:text-white/60 hover:bg-white/5 transition-all duration-200"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              <Lock className="w-4 h-4" />
+              <span>Privacy Policy</span>
+            </Link>
+          </div>
         </div>
       </div>
 

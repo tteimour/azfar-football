@@ -668,13 +668,15 @@ export async function deleteRoom(roomId: string) {
   await supabase.from('chat_messages').delete().eq('room_id', roomId);
   await supabase.from('player_ratings').delete().eq('room_id', roomId);
   await supabase.from('notifications').delete().eq('room_id', roomId);
+  await supabase.from('waitlist').delete().eq('room_id', roomId); // safe: ignored if table missing
   await supabase.from('room_participants').delete().eq('room_id', roomId);
   await supabase.from('join_requests').delete().eq('room_id', roomId);
   await supabase.from('rooms').delete().eq('id', roomId);
 }
 
 export async function isAdmin(userId: string): Promise<boolean> {
-  const { data } = await supabase.from('profiles').select('is_admin').eq('id', userId).single();
+  const { data, error } = await supabase.from('profiles').select('is_admin').eq('id', userId).single();
+  if (error) return false; // column may not exist yet (migration 004 pending)
   return data?.is_admin === true;
 }
 
@@ -708,6 +710,7 @@ export async function joinWaitlist(roomId: string, userId: string): Promise<Wait
     .single();
 
   if (error) {
+    if (error.code === '42P01') return null; // table doesn't exist yet
     console.error('Error joining waitlist:', error);
     return null;
   }

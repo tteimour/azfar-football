@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User } from '@/types';
 import { supabase, isDemoMode } from '@/lib/supabase';
-import { getCurrentUser, setCurrentUser, initializeStore } from '@/lib/store';
+import { getCurrentUser, setCurrentUser, initializeStore, getUserByEmail, registerUserInRegistry, generateStableId, updateUserInRegistry } from '@/lib/store';
 import { getProfile, updateProfile as updateDbProfile, upsertProfile } from '@/lib/database';
 
 interface AuthContextType {
@@ -79,17 +79,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     if (isDemoMode) {
-      // Demo mode: accept any email/password
+      // Demo mode: restore existing user by email or create new with stable ID
+      const existing = getUserByEmail(email);
+      if (existing) {
+        setCurrentUser(existing);
+        setUser(existing);
+        return { success: true };
+      }
+      const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || 'admin@tapadam.az';
       const demoUser: User = {
-        id: Date.now().toString(),
+        id: generateStableId(email),
         email,
         full_name: email.split('@')[0],
         preferred_position: 'any',
         skill_level: 'intermediate',
         games_played: 0,
+        is_admin: email.toLowerCase() === adminEmail.toLowerCase(),
         created_at: new Date().toISOString(),
       };
       setCurrentUser(demoUser);
+      registerUserInRegistry(demoUser);
       setUser(demoUser);
       return { success: true };
     }
@@ -114,9 +123,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const register = async (data: RegisterData): Promise<{ success: boolean; error?: string }> => {
     if (isDemoMode) {
-      // Demo mode
+      // Demo mode: check if already registered with this email
+      const existing = getUserByEmail(data.email);
+      if (existing) {
+        setCurrentUser(existing);
+        setUser(existing);
+        return { success: true };
+      }
+      const adminEmail = process.env.NEXT_PUBLIC_ADMIN_EMAIL || 'admin@tapadam.az';
       const newUser: User = {
-        id: Date.now().toString(),
+        id: generateStableId(data.email),
         email: data.email,
         full_name: data.full_name,
         phone: data.phone,
@@ -125,9 +141,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         skill_level: data.skill_level,
         bio: data.bio,
         games_played: 0,
+        is_admin: data.email.toLowerCase() === adminEmail.toLowerCase(),
         created_at: new Date().toISOString(),
       };
       setCurrentUser(newUser);
+      registerUserInRegistry(newUser);
       setUser(newUser);
       return { success: true };
     }
@@ -190,6 +208,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (isDemoMode) {
       const updated = { ...user, ...updates };
       setCurrentUser(updated);
+      registerUserInRegistry(updated);
       setUser(updated);
     } else {
       const updated = await updateDbProfile(user.id, updates);

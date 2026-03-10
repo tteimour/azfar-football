@@ -203,18 +203,21 @@ export default function HomePage() {
 
         <div className="relative container mx-auto px-4 pt-20 pb-24 md:pt-28 md:pb-32">
           <div className="max-w-4xl mx-auto text-center">
-            {/* Badge */}
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-neon-green/10 border border-neon-green/20 mb-8 animate-fade-in">
-              <div className="w-2 h-2 rounded-full bg-neon-green animate-pulse-glow" />
-              <span className="text-xs font-semibold text-neon-green tracking-wide uppercase">
-                {rooms.length > 0 ? `${rooms.length} matches available now` : 'Find your next match'}
+            {/* Live Badge */}
+            <div className="hero-live-badge mb-8 animate-fade-in">
+              <span className="live-dot" />
+              <span className="text-xs font-bold text-neon-green tracking-widest uppercase">
+                {rooms.length > 0 ? `${rooms.length} Live Matches` : 'Live Now'}
               </span>
+              {rooms.length > 0 && (
+                <span className="text-xs text-white/30 font-normal">· Baku, AZ</span>
+              )}
             </div>
 
             <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-heading font-bold tracking-tight mb-6 animate-fade-in" style={{ animationDelay: '100ms' }}>
-              <span className="text-white">Find Players. Create Matches.</span>
+              <span className="text-white">Find Players.</span>
               <br />
-              <span className="text-gradient">Dominate the Pitch.</span>
+              <span className="text-gradient-animated">Dominate the Pitch.</span>
             </h1>
 
             <p
@@ -231,25 +234,26 @@ export default function HomePage() {
               <Link
                 href="/rooms"
                 className="btn-primary flex items-center space-x-2 text-base px-8 py-3.5 w-full sm:w-auto justify-center group"
+                style={{ boxShadow: '0 0 40px rgba(0, 255, 136, 0.35), 0 4px 16px rgba(0,0,0,0.4)' }}
               >
                 <Search className="w-5 h-5" />
                 <span>Find a Match</span>
-                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1.5" />
               </Link>
               {user ? (
                 <Link
                   href="/rooms?create=true"
-                  className="btn-secondary flex items-center space-x-2 text-base px-8 py-3.5 w-full sm:w-auto justify-center"
+                  className="btn-secondary flex items-center space-x-2 text-base px-8 py-3.5 w-full sm:w-auto justify-center group"
                 >
-                  <Zap className="w-5 h-5" />
+                  <Zap className="w-5 h-5 text-neon-amber group-hover:text-neon-green transition-colors" />
                   <span>Create a Match</span>
                 </Link>
               ) : (
                 <Link
                   href="/auth"
-                  className="btn-secondary flex items-center space-x-2 text-base px-8 py-3.5 w-full sm:w-auto justify-center"
+                  className="btn-secondary flex items-center space-x-2 text-base px-8 py-3.5 w-full sm:w-auto justify-center group"
                 >
-                  <UserPlus className="w-5 h-5" />
+                  <UserPlus className="w-5 h-5 group-hover:text-neon-green transition-colors" />
                   <span>Get Started Free</span>
                 </Link>
               )}
@@ -257,18 +261,18 @@ export default function HomePage() {
 
             {/* Inline live stats */}
             <div
-              className="flex flex-wrap items-center justify-center gap-6 md:gap-10 mt-12 animate-fade-in"
+              className="flex flex-wrap items-center justify-center gap-4 md:gap-8 mt-12 animate-fade-in"
               style={{ animationDelay: '400ms' }}
             >
               {[
-                { icon: Users, label: 'Active Players', value: '200+' },
-                { icon: Trophy, label: 'Matches Played', value: '50+' },
-                { icon: Star, label: 'Avg Rating', value: '4.8' },
-              ].map((stat) => (
-                <div key={stat.label} className="flex items-center gap-2 text-white/30">
-                  <stat.icon className="w-4 h-4 text-neon-green/50" />
-                  <span className="text-sm font-medium text-white/50">{stat.value}</span>
-                  <span className="text-xs">{stat.label}</span>
+                { icon: Users, label: 'Active Players', value: '200+', color: 'text-neon-green' },
+                { icon: Trophy, label: 'Matches Played', value: '50+', color: 'text-neon-cyan' },
+                { icon: Star, label: 'Avg Rating', value: '4.8★', color: 'text-neon-amber' },
+              ].map((stat, i) => (
+                <div key={stat.label} className="stat-pill" style={{ animationDelay: `${500 + i * 80}ms` }}>
+                  <stat.icon className={`w-3.5 h-3.5 ${stat.color}`} />
+                  <span className={`font-bold ${stat.color}`}>{stat.value}</span>
+                  <span className="text-white/40 font-normal">{stat.label}</span>
                 </div>
               ))}
             </div>
@@ -292,16 +296,20 @@ export default function HomePage() {
       >
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h2 className="text-2xl md:text-3xl font-heading font-bold text-white">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="live-dot" style={{ width: '6px', height: '6px' }} />
+              <span className="text-xs font-semibold text-neon-green/60 tracking-widest uppercase">Live</span>
+            </div>
+            <h2 className="text-2xl md:text-3xl font-heading font-bold text-white section-heading">
               Next Available Matches
             </h2>
             <p className="text-sm text-white/40 mt-1">Jump into a game today</p>
           </div>
           <Link
             href="/rooms"
-            className="text-neon-green/70 hover:text-neon-green flex items-center text-sm font-medium transition-colors group"
+            className="flex items-center gap-1.5 text-sm font-semibold text-neon-green/60 hover:text-neon-green transition-colors group px-3 py-1.5 rounded-lg hover:bg-neon-green/5 border border-transparent hover:border-neon-green/15"
           >
-            View all <ChevronRight className="w-4 h-4 ml-1 transition-transform group-hover:translate-x-1" />
+            View all <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
           </Link>
         </div>
 
@@ -331,9 +339,15 @@ export default function HomePage() {
                 <Link
                   key={room.id}
                   href={`/rooms/${room.id}`}
-                  className="card group hover:shadow-card-hover hover:-translate-y-1"
+                  className="card card-hover group relative overflow-hidden"
                   style={{ animationDelay: `${idx * 100}ms` }}
                 >
+                  {/* Top accent line that animates on hover */}
+                  <div
+                    className="absolute top-0 left-0 right-0 h-[2px] rounded-t-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                    style={{ background: 'linear-gradient(90deg, #00ff88, #00d4ff)' }}
+                  />
+
                   {/* Header */}
                   <div className="flex items-start justify-between mb-4">
                     <h3 className="font-heading font-semibold text-white text-lg group-hover:text-neon-green transition-colors line-clamp-1">
@@ -375,27 +389,34 @@ export default function HomePage() {
                           {room.current_players}/{room.max_players} players
                         </span>
                       </div>
-                      <span className={`text-xs font-semibold ${spotsLeft <= 3 ? 'text-neon-amber' : 'text-neon-green/70'}`}>
-                        {spotsLeft} {spotsLeft === 1 ? 'spot' : 'spots'} left
+                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                        spotsLeft <= 2
+                          ? 'text-neon-amber bg-neon-amber/10'
+                          : 'text-neon-green/80 bg-neon-green/[0.08]'
+                      }`}>
+                        {spotsLeft === 0 ? 'Full' : `${spotsLeft} left`}
                       </span>
                     </div>
-                    <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
+                    <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
                       <div
-                        className="h-full rounded-full transition-all duration-500"
+                        className="h-full rounded-full transition-all duration-700"
                         style={{
                           width: `${fillPercent}%`,
-                          background: fillPercent > 75
+                          background: fillPercent > 80
                             ? 'linear-gradient(90deg, #ffaa00, #ff6644)'
                             : 'linear-gradient(90deg, #00ff88, #00d4ff)',
+                          boxShadow: fillPercent > 80
+                            ? '0 0 8px rgba(255,170,0,0.4)'
+                            : '0 0 8px rgba(0,255,136,0.3)',
                         }}
                       />
                     </div>
                   </div>
 
                   {/* Join hint */}
-                  <div className="mt-3 flex items-center justify-center py-2 rounded-lg bg-neon-green/5 border border-neon-green/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  <div className="mt-3 flex items-center justify-center py-2 rounded-lg bg-neon-green/5 border border-neon-green/10 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-1 group-hover:translate-y-0">
                     <Play className="w-3.5 h-3.5 text-neon-green mr-1.5" />
-                    <span className="text-xs font-semibold text-neon-green">Quick Join</span>
+                    <span className="text-xs font-bold text-neon-green tracking-wide">Quick Join</span>
                   </div>
                 </Link>
               );
@@ -424,6 +445,9 @@ export default function HomePage() {
         }`}
       >
         <div className="text-center mb-12">
+          <div className="section-divider mb-4 max-w-xs mx-auto">
+            <span className="text-xs font-bold text-neon-green/50 tracking-widest uppercase px-2">Get Started</span>
+          </div>
           <h2 className="text-3xl md:text-4xl font-heading font-bold text-white mb-3">
             How It Works
           </h2>
@@ -467,7 +491,7 @@ export default function HomePage() {
                   transitionDelay: `${idx * 150}ms`,
                 }}
               >
-                <div className="card text-center group hover:shadow-card-hover hover:-translate-y-1">
+                <div className="card card-hover text-center group relative overflow-hidden">
                   {/* Step number circle */}
                   <div className={`w-14 h-14 rounded-full ${colors.bg} border ${colors.border} flex items-center justify-center mx-auto mb-5 ${colors.glow} transition-all duration-300`}>
                     <span className={`${colors.text} font-heading font-bold text-xl`}>
@@ -534,7 +558,7 @@ export default function HomePage() {
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h2 className="text-2xl md:text-3xl font-heading font-bold text-white">
+              <h2 className="text-2xl md:text-3xl font-heading font-bold text-white section-heading">
                 Popular Stadiums
               </h2>
               <p className="text-sm text-white/40 mt-1">Premium pitches across Baku</p>
@@ -567,34 +591,43 @@ export default function HomePage() {
           {(stadiums.length > 0 ? stadiums : []).map((stadium) => (
             <div
               key={stadium.id}
-              className="card flex-shrink-0 w-[280px] sm:w-[300px] snap-start group hover:shadow-card-hover hover:-translate-y-1"
+              className="card card-hover flex-shrink-0 w-[280px] sm:w-[300px] snap-start group relative overflow-hidden"
             >
+              {/* Top accent line */}
+              <div
+                className="absolute top-0 left-0 right-0 h-[2px] rounded-t-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                style={{ background: 'linear-gradient(90deg, #00ff88, #00d4ff)' }}
+              />
+
               {/* Stadium icon/placeholder */}
-              <div className="w-full h-32 rounded-lg bg-gradient-to-br from-neon-green/10 to-neon-cyan/5 border border-white/5 flex items-center justify-center mb-4 overflow-hidden">
+              <div className="w-full h-28 rounded-lg bg-gradient-to-br from-neon-green/10 to-neon-cyan/5 border border-white/5 flex items-center justify-center mb-4 overflow-hidden group-hover:from-neon-green/[0.12] group-hover:to-neon-cyan/10 transition-all duration-300">
                 <div className="text-center">
-                  <div className="w-12 h-12 rounded-full bg-neon-green/10 flex items-center justify-center mx-auto mb-2 group-hover:bg-neon-green/20 transition-colors">
-                    <MapPin className="w-6 h-6 text-neon-green/60" />
+                  <div
+                    className="w-11 h-11 rounded-full flex items-center justify-center mx-auto mb-2 transition-all duration-300"
+                    style={{ background: 'rgba(0,255,136,0.1)', border: '1px solid rgba(0,255,136,0.15)' }}
+                  >
+                    <MapPin className="w-5 h-5 text-neon-green/70" />
                   </div>
-                  <span className="text-xs text-white/30">{stadium.district}</span>
+                  <span className="text-xs text-white/25 font-medium">{stadium.district}</span>
                 </div>
               </div>
 
               {/* Stadium info */}
-              <h3 className="font-heading font-semibold text-white text-lg mb-2 group-hover:text-neon-green transition-colors">
+              <h3 className="font-heading font-semibold text-white text-base mb-3 group-hover:text-neon-green transition-colors line-clamp-1">
                 {stadium.name}
               </h3>
-              <div className="space-y-1.5 text-sm">
-                <div className="flex items-center justify-between text-white/40">
-                  <span>District</span>
-                  <span className="text-white/60 font-medium">{stadium.district}</span>
+              <div className="space-y-2 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-white/30 uppercase tracking-wider font-semibold">District</span>
+                  <span className="text-white/60">{stadium.district}</span>
                 </div>
-                <div className="flex items-center justify-between text-white/40">
-                  <span>Capacity</span>
-                  <span className="text-white/60 font-medium">{stadium.capacity} players</span>
+                <div className="flex items-center justify-between">
+                  <span className="text-white/30 uppercase tracking-wider font-semibold">Capacity</span>
+                  <span className="text-white/60">{stadium.capacity} players</span>
                 </div>
-                <div className="flex items-center justify-between text-white/40">
-                  <span>Price</span>
-                  <span className="text-neon-green font-semibold">{stadium.price_per_hour} AZN/hr</span>
+                <div className="flex items-center justify-between pt-1 border-t border-white/5">
+                  <span className="text-white/30 uppercase tracking-wider font-semibold">Price</span>
+                  <span className="font-bold text-neon-green text-sm">{stadium.price_per_hour} <span className="text-neon-green/50 font-normal text-xs">AZN/hr</span></span>
                 </div>
               </div>
             </div>
@@ -615,14 +648,26 @@ export default function HomePage() {
           ctaSection.isInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
         }`}
       >
-        <div className="card bg-green-glow-gradient text-center py-12 md:py-16 px-6 relative overflow-hidden">
+        <div className="card bg-green-glow-gradient text-center py-12 md:py-16 px-6 relative overflow-hidden" style={{ borderColor: 'rgba(0,255,136,0.12)', boxShadow: '0 0 60px rgba(0,255,136,0.06), 0 4px 40px rgba(0,0,0,0.4)' }}>
           {/* Decorative elements */}
           <div className="absolute top-0 left-1/4 w-64 h-64 bg-neon-green/5 rounded-full blur-[100px]" />
           <div className="absolute bottom-0 right-1/4 w-48 h-48 bg-neon-cyan/5 rounded-full blur-[80px]" />
+          {/* Grid pattern overlay */}
+          <div
+            className="absolute inset-0 opacity-[0.02]"
+            style={{
+              backgroundImage: `linear-gradient(rgba(0,255,136,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(0,255,136,0.5) 1px, transparent 1px)`,
+              backgroundSize: '40px 40px',
+            }}
+          />
 
           <div className="relative">
+            <div className="inline-flex items-center gap-2 mb-4 px-3 py-1 rounded-full bg-neon-green/10 border border-neon-green/20">
+              <Trophy className="w-3.5 h-3.5 text-neon-amber" />
+              <span className="text-xs font-bold text-neon-green tracking-wider uppercase">Join the Community</span>
+            </div>
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-heading font-bold text-white mb-4">
-              Ready to Play?
+              Ready to <span className="text-gradient">Play?</span>
             </h2>
             <p className="text-white/40 max-w-lg mx-auto mb-8 text-base md:text-lg">
               Join the Baku football community. Create your profile, find matches, and build your player stats.

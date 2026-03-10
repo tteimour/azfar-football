@@ -133,7 +133,7 @@ export default function RoomDetailPage() {
   };
 
   const handleDeleteRoom = async () => {
-    if (!room || !isCreator) return;
+    if (!room || (!isCreator && !user?.is_admin)) return;
 
     setDeleting(true);
     try {
@@ -287,12 +287,48 @@ export default function RoomDetailPage() {
       </Link>
 
       {/* Room Header Card */}
-      <div className="card">
-        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-6">
+      <div className="card relative overflow-hidden" style={{ borderColor: room.status === 'open' ? 'rgba(0,255,136,0.12)' : undefined }}>
+        {/* Status top border accent */}
+        <div
+          className="absolute top-0 left-0 right-0 h-[3px] rounded-t-xl"
+          style={{
+            background: room.status === 'open'
+              ? 'linear-gradient(90deg, #00ff88, #00d4ff)'
+              : room.status === 'completed'
+                ? 'linear-gradient(90deg, #94a3b8, #475569)'
+                : room.status === 'full'
+                  ? 'linear-gradient(90deg, #ffaa00, #ff8800)'
+                  : 'linear-gradient(90deg, #ff4444, #cc2233)',
+          }}
+        />
+
+        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-6 pt-2">
           <div>
             <h1 className="text-3xl font-bold font-heading text-white mb-3">{room.title}</h1>
             <div className="flex flex-wrap gap-2">
-              <span className={`badge ${getStatusBadgeClass(room.status)}`}>
+              {/* Enhanced gradient status badge */}
+              <span
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold tracking-wide uppercase"
+                style={room.status === 'open' ? {
+                  background: 'linear-gradient(135deg, rgba(0,255,136,0.15) 0%, rgba(0,212,255,0.1) 100%)',
+                  border: '1px solid rgba(0,255,136,0.3)',
+                  color: '#00ff88',
+                  boxShadow: '0 0 12px rgba(0,255,136,0.1)',
+                } : room.status === 'completed' ? {
+                  background: 'rgba(255,255,255,0.05)',
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  color: '#94a3b8',
+                } : room.status === 'full' ? {
+                  background: 'rgba(255,170,0,0.12)',
+                  border: '1px solid rgba(255,170,0,0.25)',
+                  color: '#ffaa00',
+                } : {
+                  background: 'rgba(255,68,68,0.12)',
+                  border: '1px solid rgba(255,68,68,0.25)',
+                  color: '#ff4444',
+                }}
+              >
+                {room.status === 'open' && <span className="live-dot" style={{ width: '6px', height: '6px' }} />}
                 {room.status}
               </span>
               <span className={`badge ${getSkillBadgeClass(room.skill_level_required)}`}>
@@ -369,13 +405,13 @@ export default function RoomDetailPage() {
               </button>
             )}
 
-            {isCreator && (
+            {(isCreator || user?.is_admin) && (
               <button
                 onClick={() => setShowDeleteModal(true)}
                 className="btn-danger flex items-center space-x-2"
               >
                 <Trash2 className="w-4 h-4" />
-                <span>Delete</span>
+                <span>{user?.is_admin && !isCreator ? 'Admin Delete' : 'Delete'}</span>
               </button>
             )}
 
@@ -422,42 +458,43 @@ export default function RoomDetailPage() {
 
         {/* Match Info Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {/* Date & Time */}
-          <div className="rounded-lg p-4" style={{ background: 'rgba(15,22,41,0.5)', border: '1px solid rgba(255,255,255,0.05)' }}>
-            <div className="flex items-center space-x-2 mb-2">
-              <Calendar className="w-4 h-4 text-neon-cyan" />
-              <span className="text-xs text-slate-500 uppercase font-semibold tracking-wider">Date</span>
+          {/* Date */}
+          <div className="info-cell">
+            <div className="flex items-center space-x-1.5 mb-2">
+              <Calendar className="w-3.5 h-3.5 text-neon-cyan" />
+              <span className="text-[10px] text-white/30 uppercase font-bold tracking-widest">Date</span>
             </div>
-            <p className="text-white font-medium">{formatDateDisplay(room.date)}</p>
+            <p className="text-white font-semibold text-sm">{formatDateDisplay(room.date)}</p>
           </div>
 
-          <div className="rounded-lg p-4" style={{ background: 'rgba(15,22,41,0.5)', border: '1px solid rgba(255,255,255,0.05)' }}>
-            <div className="flex items-center space-x-2 mb-2">
-              <Clock className="w-4 h-4 text-neon-cyan" />
-              <span className="text-xs text-slate-500 uppercase font-semibold tracking-wider">Time</span>
+          {/* Time */}
+          <div className="info-cell">
+            <div className="flex items-center space-x-1.5 mb-2">
+              <Clock className="w-3.5 h-3.5 text-neon-amber" />
+              <span className="text-[10px] text-white/30 uppercase font-bold tracking-widest">Time</span>
             </div>
-            <p className="text-white font-medium">{room.start_time} - {room.end_time}</p>
+            <p className="text-white font-semibold text-sm">{room.start_time} – {room.end_time}</p>
           </div>
 
           {/* Stadium */}
-          <div className="rounded-lg p-4" style={{ background: 'rgba(15,22,41,0.5)', border: '1px solid rgba(255,255,255,0.05)' }}>
-            <div className="flex items-center space-x-2 mb-2">
-              <MapPin className="w-4 h-4 text-neon-green" />
-              <span className="text-xs text-slate-500 uppercase font-semibold tracking-wider">Stadium</span>
+          <div className="info-cell">
+            <div className="flex items-center space-x-1.5 mb-2">
+              <MapPin className="w-3.5 h-3.5 text-neon-green" />
+              <span className="text-[10px] text-white/30 uppercase font-bold tracking-widest">Stadium</span>
             </div>
-            <p className="text-white font-medium truncate">{stadiumName}</p>
+            <p className="text-white font-semibold text-sm truncate">{stadiumName}</p>
             {stadiumAddress && (
-              <p className="text-xs text-slate-500 mt-0.5 truncate">{stadiumAddress}</p>
+              <p className="text-xs text-white/30 mt-0.5 truncate">{stadiumAddress}</p>
             )}
           </div>
 
           {/* Price */}
-          <div className="rounded-lg p-4" style={{ background: 'rgba(15,22,41,0.5)', border: '1px solid rgba(255,255,255,0.05)' }}>
-            <div className="flex items-center space-x-2 mb-2">
-              <DollarSign className="w-4 h-4 text-neon-amber" />
-              <span className="text-xs text-slate-500 uppercase font-semibold tracking-wider">Price</span>
+          <div className="info-cell">
+            <div className="flex items-center space-x-1.5 mb-2">
+              <DollarSign className="w-3.5 h-3.5 text-neon-amber" />
+              <span className="text-[10px] text-white/30 uppercase font-bold tracking-widest">Price</span>
             </div>
-            <p className="text-white font-medium">
+            <p className={`font-bold text-sm ${stadiumPrice ? 'text-neon-green' : 'text-white/30 italic font-normal text-xs'}`}>
               {stadiumPrice ? `${stadiumPrice} AZN/hr` : 'Free / TBD'}
             </p>
           </div>
@@ -467,27 +504,30 @@ export default function RoomDetailPage() {
         <div className="mt-4 pt-4 border-t border-white/5">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center space-x-2">
-              <Users className="w-4 h-4 text-neon-green" />
-              <span className="text-sm text-slate-300 font-medium">
-                Players ({room.current_players}/{room.max_players})
+              <Users className="w-4 h-4 text-neon-green/70" />
+              <span className="text-sm text-white/70 font-semibold">
+                {room.current_players}<span className="text-white/30 font-normal">/{room.max_players} players</span>
               </span>
             </div>
-            <span className="text-xs text-slate-500">
+            <span className="text-xs font-semibold">
               {isFull ? (
-                <span className="text-neon-amber">Match is full</span>
+                <span className="text-neon-amber px-2 py-0.5 rounded-full bg-neon-amber/10 border border-neon-amber/20">Full</span>
               ) : (
-                `${room.max_players - room.current_players} spots left`
+                <span className="text-white/40">{room.max_players - room.current_players} spots left</span>
               )}
             </span>
           </div>
           <div className="h-2 bg-white/5 rounded-full overflow-hidden">
             <div
-              className="h-full rounded-full transition-all duration-500"
+              className="h-full rounded-full transition-all duration-700"
               style={{
                 width: `${playerPercent}%`,
                 background: playerPercent >= 100
                   ? 'linear-gradient(90deg, #ffaa00, #ff8800)'
-                  : 'linear-gradient(90deg, #00ff88, #00cc6a)',
+                  : 'linear-gradient(90deg, #00ff88, #00d4ff)',
+                boxShadow: playerPercent >= 100
+                  ? '0 0 8px rgba(255,170,0,0.5)'
+                  : '0 0 8px rgba(0,255,136,0.3)',
               }}
             />
           </div>
@@ -510,9 +550,10 @@ export default function RoomDetailPage() {
       {/* Map Section */}
       {hasLocation && (
         <div className="card">
-          <h2 className="text-lg font-bold font-heading text-white mb-4 flex items-center space-x-2">
-            <MapPin className="w-5 h-5 text-neon-green" />
+          <h2 className="text-lg font-bold font-heading text-white mb-4 flex items-center gap-2">
+            <MapPin className="w-4 h-4 text-neon-green" />
             <span>Location</span>
+            <div className="flex-1 h-px ml-1" style={{ background: 'linear-gradient(90deg, rgba(0,255,136,0.2), transparent)' }} />
           </h2>
           <div className="rounded-xl overflow-hidden">
             <LocationMap
@@ -528,9 +569,11 @@ export default function RoomDetailPage() {
 
       {/* Players Section */}
       <div className="card">
-        <h2 className="text-lg font-bold font-heading text-white mb-4 flex items-center space-x-2">
-          <Users className="w-5 h-5 text-neon-green" />
-          <span>Players ({participants.length}/{room.max_players})</span>
+        <h2 className="text-lg font-bold font-heading text-white mb-4 flex items-center gap-2">
+          <Users className="w-4 h-4 text-neon-green" />
+          <span>Players</span>
+          <span className="text-neon-green/50 font-normal text-sm">({participants.length}/{room.max_players})</span>
+          <div className="flex-1 h-px ml-1" style={{ background: 'linear-gradient(90deg, rgba(0,255,136,0.2), transparent)' }} />
         </h2>
         {participants.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
@@ -592,12 +635,13 @@ export default function RoomDetailPage() {
       {/* Waitlist Section (visible to creator when there are entries) */}
       {isCreator && waitlist.length > 0 && (
         <div className="card">
-          <h2 className="text-lg font-bold font-heading text-white mb-4 flex items-center space-x-2">
-            <ListPlus className="w-5 h-5 text-neon-amber" />
+          <h2 className="text-lg font-bold font-heading text-white mb-4 flex items-center gap-2">
+            <ListPlus className="w-4 h-4 text-neon-amber" />
             <span>Waitlist</span>
             <span className="bg-neon-amber text-dark-950 text-xs px-1.5 py-0.5 rounded-full min-w-[18px] text-center font-bold">
               {waitlist.length}
             </span>
+            <div className="flex-1 h-px ml-1" style={{ background: 'linear-gradient(90deg, rgba(255,170,0,0.2), transparent)' }} />
           </h2>
           <div className="space-y-2">
             {waitlist.map((entry) => (
@@ -640,14 +684,15 @@ export default function RoomDetailPage() {
       {/* Join Requests (for creator) */}
       {isCreator && (
         <div className="card">
-          <h2 className="text-lg font-bold font-heading text-white mb-4 flex items-center space-x-2">
-            <Shield className="w-5 h-5 text-neon-cyan" />
+          <h2 className="text-lg font-bold font-heading text-white mb-4 flex items-center gap-2">
+            <Shield className="w-4 h-4 text-neon-cyan" />
             <span>Join Requests</span>
             {pendingRequests.length > 0 && (
-              <span className="bg-neon-red text-white text-xs px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
+              <span className="bg-neon-red text-white text-xs px-1.5 py-0.5 rounded-full min-w-[18px] text-center font-bold">
                 {pendingRequests.length}
               </span>
             )}
+            <div className="flex-1 h-px ml-1" style={{ background: 'linear-gradient(90deg, rgba(0,212,255,0.2), transparent)' }} />
           </h2>
           {requests.length > 0 ? (
             <div className="space-y-3">

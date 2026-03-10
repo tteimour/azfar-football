@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { Inter, Rajdhani } from 'next/font/google';
 import './globals.css';
 import Navbar from '@/components/Navbar';
+import Footer from '@/components/Footer';
 import { AuthProvider } from '@/components/AuthProvider';
 
 const inter = Inter({
@@ -49,6 +50,7 @@ export default function RootLayout({
         <AuthProvider>
           <Navbar />
           <main className="pb-20 md:pb-0">{children}</main>
+          <Footer />
         </AuthProvider>
       </body>
     </html>

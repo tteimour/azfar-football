@@ -516,8 +516,14 @@ function RoomsContent() {
                   <Link
                     key={room.id}
                     href={`/rooms/${room.id}`}
-                    className="card group hover:shadow-card-hover hover:border-neon-green/20"
+                    className="card card-hover group relative overflow-hidden"
                   >
+                    {/* Top accent line */}
+                    <div
+                      className="absolute top-0 left-0 right-0 h-[2px] rounded-t-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                      style={{ background: room.status === 'completed' ? 'linear-gradient(90deg, #94a3b8, #475569)' : 'linear-gradient(90deg, #00ff88, #00d4ff)' }}
+                    />
+
                     {/* Top row: title + status + time badge */}
                     <div className="flex items-start justify-between gap-2 mb-3">
                       <h3 className="font-semibold text-lg text-white group-hover:text-neon-green transition-colors line-clamp-1">
@@ -550,53 +556,61 @@ function RoomsContent() {
 
                     {/* Info rows */}
                     <div className="space-y-2 text-sm">
-                      <div className="flex items-center space-x-2 text-slate-300">
-                        <MapPin className="w-4 h-4 text-slate-500 flex-shrink-0" />
+                      <div className="flex items-center space-x-2 text-white/60">
+                        <MapPin className="w-4 h-4 text-neon-green/50 flex-shrink-0" />
                         <span className="truncate">{getStadiumDisplayName(room)}</span>
                       </div>
                       <div className="flex items-center space-x-4">
-                        <div className="flex items-center space-x-2 text-slate-300">
-                          <Calendar className="w-4 h-4 text-slate-500 flex-shrink-0" />
+                        <div className="flex items-center space-x-2 text-white/60">
+                          <Calendar className="w-4 h-4 text-neon-cyan/50 flex-shrink-0" />
                           <span>{formatDateDisplay(room.date)}</span>
                         </div>
                         {relativeDay && (relativeDay === 'Today' || relativeDay === 'Tomorrow') && (
-                          <span className={`text-xs font-semibold px-1.5 py-0.5 rounded ${
+                          <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
                             relativeDay === 'Today'
-                              ? 'text-neon-amber bg-neon-amber/10'
-                              : 'text-neon-cyan bg-neon-cyan/10'
+                              ? 'text-neon-amber bg-neon-amber/10 border border-neon-amber/20'
+                              : 'text-neon-cyan bg-neon-cyan/10 border border-neon-cyan/20'
                           }`}>
                             {relativeDay}
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center space-x-2 text-slate-300">
-                        <Clock className="w-4 h-4 text-slate-500 flex-shrink-0" />
+                      <div className="flex items-center space-x-2 text-white/60">
+                        <Clock className="w-4 h-4 text-neon-amber/50 flex-shrink-0" />
                         <span>{room.start_time} - {room.end_time}</span>
                       </div>
 
                       {/* Player count with progress bar */}
                       <div className="pt-1">
                         <div className="flex items-center justify-between mb-1.5">
-                          <div className="flex items-center space-x-2 text-slate-300">
-                            <Users className="w-4 h-4 text-slate-500 flex-shrink-0" />
-                            <span>{room.current_players}/{room.max_players} players</span>
+                          <div className="flex items-center space-x-2 text-white/60">
+                            <Users className="w-4 h-4 text-neon-green/40 flex-shrink-0" />
+                            <span className="font-medium">{room.current_players}/{room.max_players}</span>
+                            <span className="text-white/30">players</span>
                           </div>
                           {spotsLeft > 0 && room.status === 'open' && (
-                            <span className="text-xs text-neon-green font-medium">
-                              {spotsLeft} spot{spotsLeft !== 1 ? 's' : ''} left
+                            <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full ${
+                              spotsLeft <= 2
+                                ? 'text-neon-amber bg-neon-amber/10'
+                                : 'text-neon-green/80 bg-neon-green/[0.08]'
+                            }`}>
+                              {spotsLeft} left
                             </span>
                           )}
                         </div>
                         <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
                           <div
-                            className="h-full rounded-full transition-all duration-500"
+                            className="h-full rounded-full transition-all duration-700"
                             style={{
                               width: `${playerPercent}%`,
                               background: playerPercent >= 100
                                 ? 'linear-gradient(90deg, #ffaa00, #ff8800)'
                                 : playerPercent >= 75
                                   ? 'linear-gradient(90deg, #00cc6a, #ffaa00)'
-                                  : 'linear-gradient(90deg, #00ff88, #00cc6a)',
+                                  : 'linear-gradient(90deg, #00ff88, #00d4ff)',
+                              boxShadow: playerPercent >= 100
+                                ? '0 0 6px rgba(255,170,0,0.4)'
+                                : '0 0 6px rgba(0,255,136,0.25)',
                             }}
                           />
                         </div>
@@ -609,12 +623,12 @@ function RoomsContent() {
                         {room.skill_level_required === 'any' ? 'All levels' : room.skill_level_required}
                       </span>
                       {price ? (
-                        <span className="flex items-center space-x-1 text-neon-green text-sm font-medium">
-                          <DollarSign className="w-3.5 h-3.5" />
-                          <span>{price} AZN/hr</span>
+                        <span className="flex items-center space-x-1 text-neon-green font-bold text-sm">
+                          <span>{price}</span>
+                          <span className="text-neon-green/50 font-normal text-xs">AZN/hr</span>
                         </span>
                       ) : (
-                        <span className="text-xs text-slate-500">Free / TBD</span>
+                        <span className="text-xs text-white/25 italic">Free / TBD</span>
                       )}
                     </div>
 
