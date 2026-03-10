@@ -1,5 +1,5 @@
 import { supabase } from './supabase';
-import { User, Room, Stadium, JoinRequest, RoomParticipant, PlayerStats, PlayerRating } from '@/types';
+import { User, Room, Stadium, JoinRequest, RoomParticipant, PlayerStats, PlayerRating, WaitlistEntry } from '@/types';
 
 // ============ Profile Functions ============
 
@@ -74,6 +74,23 @@ export async function createProfile(profile: Partial<User> & { id: string; email
 
   if (error) {
     console.error('Error creating profile:', error);
+    return null;
+  }
+
+  return data as User;
+}
+
+export async function getPublicProfile(userId: string): Promise<User | null> {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id, email, full_name, preferred_position, skill_level, avatar_url, games_played, bio, created_at')
+    .eq('id', userId)
+    .single();
+
+  if (error) {
+    if (error.code !== 'PGRST116') {
+      console.error('Error fetching public profile:', error);
+    }
     return null;
   }
 
@@ -623,4 +640,106 @@ export async function getRatingsForRoom(roomId: string): Promise<PlayerRating[]>
   }
 
   return data as PlayerRating[];
+}
+
+// ============ Admin Functions ============
+
+export async function getAdminStats() {
+  const { count: totalUsers } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
+  const { count: activeMatches } = await supabase.from('rooms').select('*', { count: 'exact', head: true }).eq('status', 'open');
+  const { count: totalStadiums } = await supabase.from('stadiums').select('*', { count: 'exact', head: true });
+  const weekAgo = new Date();
+  weekAgo.setDate(weekAgo.getDate() - 7);
+  const { count: matchesThisWeek } = await supabase.from('rooms').select('*', { count: 'exact', head: true }).gte('created_at', weekAgo.toISOString());
+  return {
+    total_users: totalUsers || 0,
+    active_matches: activeMatches || 0,
+    total_stadiums: totalStadiums || 0,
+    matches_this_week: matchesThisWeek || 0,
+  };
+}
+
+export async function getAllUsers(): Promise<User[]> {
+  const { data } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
+  return (data || []) as User[];
+}
+
+export async function deleteRoom(roomId: string) {
+  await supabase.from('chat_messages').delete().eq('room_id', roomId);
+  await supabase.from('player_ratings').delete().eq('room_id', roomId);
+  await supabase.from('notifications').delete().eq('room_id', roomId);
+  await supabase.from('room_participants').delete().eq('room_id', roomId);
+  await supabase.from('join_requests').delete().eq('room_id', roomId);
+  await supabase.from('rooms').delete().eq('id', roomId);
+}
+
+export async function isAdmin(userId: string): Promise<boolean> {
+  const { data } = await supabase.from('profiles').select('is_admin').eq('id', userId).single();
+  return data?.is_admin === true;
+}
+
+// ============ Waitlist Functions ============
+
+export async function getWaitlistForRoom(roomId: string): Promise<WaitlistEntry[]> {
+  const { data, error } = await supabase
+    .from('waitlist')
+    .select(`
+      *,
+      user:profiles(*)
+    `)
+    .eq('room_id', roomId)
+    .order('created_at', { ascending: true });
+
+  if (error) {
+    // Table might not exist yet; return empty
+    if (error.code === '42P01') return [];
+    console.error('Error fetching waitlist:', error);
+    return [];
+  }
+
+  return data as WaitlistEntry[];
+}
+
+export async function joinWaitlist(roomId: string, userId: string): Promise<WaitlistEntry | null> {
+  const { data, error } = await supabase
+    .from('waitlist')
+    .insert({ room_id: roomId, user_id: userId })
+    .select(`*, user:profiles(*)`)
+    .single();
+
+  if (error) {
+    console.error('Error joining waitlist:', error);
+    return null;
+  }
+
+  return data as WaitlistEntry;
+}
+
+export async function isUserOnWaitlist(userId: string, roomId: string): Promise<boolean> {
+  const { data, error } = await supabase
+    .from('waitlist')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('room_id', roomId)
+    .maybeSingle();
+
+  if (error) {
+    if (error.code === '42P01') return false;
+    console.error('Error checking waitlist:', error);
+    return false;
+  }
+
+  return !!data;
+}
+
+export async function leaveWaitlist(userId: string, roomId: string): Promise<void> {
+  const { error } = await supabase
+    .from('waitlist')
+    .delete()
+    .eq('user_id', userId)
+    .eq('room_id', roomId);
+
+  if (error) {
+    console.error('Error leaving waitlist:', error);
+  }
 }

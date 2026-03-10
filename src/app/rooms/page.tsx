@@ -1,25 +1,26 @@
 'use client';
 
-import React, { useEffect, useState, Suspense, useCallback } from 'react';
+import React, { useEffect, useState, Suspense, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/components/AuthProvider';
 import { getRooms, createRoom, getPendingRequestsForMyRooms, updateRequest, getRequestsForUser } from '@/lib/data';
 import { Room, JoinRequest } from '@/types';
-import { MapPin, Users, Calendar, Clock, Plus, Filter, X, Check, Search, Bell, Map } from 'lucide-react';
-import PlayerSlots from '@/components/PlayerSlots';
-import { formatDateDisplay, parseDateDDMM, isValidDDMM, getTodayISO } from '@/lib/dateUtils';
+import { MapPin, Users, Calendar, Clock, Plus, X, Check, Search, Bell, Map, DollarSign, Trophy, Loader2, ArrowUpDown, Zap, Timer } from 'lucide-react';
+import { formatDateDisplay, parseDateDDMM, isValidDDMM, getTodayISO, getRelativeDay } from '@/lib/dateUtils';
 import dynamic from 'next/dynamic';
 
-// Dynamic import for LocationPicker to avoid SSR issues
 const LocationPicker = dynamic(() => import('@/components/LocationPicker'), {
   ssr: false,
   loading: () => (
-    <div className="h-64 bg-gray-800 rounded-lg animate-pulse flex items-center justify-center">
-      <Map className="w-8 h-8 text-gray-600" />
+    <div className="h-64 bg-dark-900 rounded-lg animate-pulse flex items-center justify-center">
+      <Map className="w-8 h-8 text-surface-light" />
     </div>
   ),
 });
+
+type StatusFilter = 'all' | 'open' | 'full' | 'completed';
+type SortOption = 'date-asc' | 'date-desc' | 'players-needed' | 'newest';
 
 function RoomsContent() {
   const searchParams = useSearchParams();
@@ -36,8 +37,10 @@ function RoomsContent() {
   const [filterSkill, setFilterSkill] = useState('');
   const [filterDate, setFilterDate] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [filterStatus, setFilterStatus] = useState<StatusFilter>('open');
+  const [sortBy, setSortBy] = useState<SortOption>('date-asc');
 
-  // Create form - custom stadium fields
+  // Create form
   const [newTitle, setNewTitle] = useState('');
   const [newStadiumName, setNewStadiumName] = useState('');
   const [newStadiumAddress, setNewStadiumAddress] = useState('');
@@ -57,27 +60,7 @@ function RoomsContent() {
     setLoading(true);
     try {
       const allRooms = await getRooms();
-
-      // Filter rooms
-      let filteredRooms = allRooms.filter(r => r.status === 'open');
-
-      if (filterSkill) {
-        filteredRooms = filteredRooms.filter(r => r.skill_level_required === filterSkill || r.skill_level_required === 'any');
-      }
-      if (filterDate) {
-        filteredRooms = filteredRooms.filter(r => r.date === filterDate);
-      }
-      if (searchQuery) {
-        const query = searchQuery.toLowerCase();
-        filteredRooms = filteredRooms.filter(r =>
-          r.title.toLowerCase().includes(query) ||
-          r.stadium_name?.toLowerCase().includes(query) ||
-          r.stadium?.name?.toLowerCase().includes(query) ||
-          r.description?.toLowerCase().includes(query)
-        );
-      }
-
-      setRooms(filteredRooms);
+      setRooms(allRooms);
 
       if (user) {
         const [pending, myReqs] = await Promise.all([
@@ -92,7 +75,7 @@ function RoomsContent() {
     } finally {
       setLoading(false);
     }
-  }, [filterSkill, filterDate, searchQuery, user]);
+  }, [user]);
 
   useEffect(() => {
     loadData();
@@ -104,11 +87,75 @@ function RoomsContent() {
     }
   }, [searchParams, loadData]);
 
+  // Filtered and sorted rooms computed from the full list
+  const filteredRooms = useMemo(() => {
+    let result = [...rooms];
+
+    // Status filter
+    if (filterStatus === 'open') {
+      result = result.filter(r => r.status === 'open' && r.current_players < r.max_players);
+    } else if (filterStatus === 'full') {
+      result = result.filter(r => r.current_players >= r.max_players || r.status === 'full');
+    } else if (filterStatus === 'completed') {
+      result = result.filter(r => r.status === 'completed');
+    }
+    // 'all' shows everything
+
+    // Skill filter
+    if (filterSkill) {
+      result = result.filter(r => r.skill_level_required === filterSkill || r.skill_level_required === 'any');
+    }
+
+    // Date filter
+    if (filterDate) {
+      result = result.filter(r => r.date === filterDate);
+    }
+
+    // Search
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(r =>
+        r.title.toLowerCase().includes(query) ||
+        r.stadium_name?.toLowerCase().includes(query) ||
+        r.stadium?.name?.toLowerCase().includes(query) ||
+        r.description?.toLowerCase().includes(query)
+      );
+    }
+
+    // Sort
+    switch (sortBy) {
+      case 'date-asc':
+        result.sort((a, b) => {
+          const dateCompare = a.date.localeCompare(b.date);
+          if (dateCompare !== 0) return dateCompare;
+          return (a.start_time || '').localeCompare(b.start_time || '');
+        });
+        break;
+      case 'date-desc':
+        result.sort((a, b) => {
+          const dateCompare = b.date.localeCompare(a.date);
+          if (dateCompare !== 0) return dateCompare;
+          return (b.start_time || '').localeCompare(a.start_time || '');
+        });
+        break;
+      case 'players-needed':
+        result.sort((a, b) => {
+          const spotsA = a.max_players - a.current_players;
+          const spotsB = b.max_players - b.current_players;
+          return spotsB - spotsA;
+        });
+        break;
+      case 'newest':
+        result.sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''));
+        break;
+    }
+
+    return result;
+  }, [rooms, filterStatus, filterSkill, filterDate, searchQuery, sortBy]);
+
   const handleDateInputChange = (value: string) => {
     setNewDateInput(value);
     setDateError('');
-
-    // Auto-format: add slash after day
     if (value.length === 2 && !value.includes('/')) {
       setNewDateInput(value + '/');
     }
@@ -118,7 +165,6 @@ function RoomsContent() {
     e.preventDefault();
     if (!user) return;
 
-    // Validate date format
     if (!isValidDDMM(newDateInput)) {
       setDateError('Please enter a valid date in dd/mm format');
       return;
@@ -180,19 +226,104 @@ function RoomsContent() {
     setFilterSkill('');
     setFilterDate('');
     setSearchQuery('');
+    setFilterStatus('open');
+    setSortBy('date-asc');
   };
 
-  const hasFilters = filterSkill || filterDate || searchQuery;
+  const hasFilters = filterSkill || filterDate || searchQuery || filterStatus !== 'open' || sortBy !== 'date-asc';
 
-  // Get display name for stadium (prefer inline fields, fallback to stadium object)
   const getStadiumDisplayName = (room: Room): string => {
     return room.stadium_name || room.stadium?.name || 'Unknown Location';
   };
 
+  const getStatusBadge = (room: Room) => {
+    if (room.status === 'completed') {
+      return <span className="badge badge-gray">Completed</span>;
+    }
+    if (room.current_players >= room.max_players) {
+      return <span className="badge badge-yellow">Full</span>;
+    }
+    if (room.status === 'cancelled') {
+      return <span className="badge badge-red">Cancelled</span>;
+    }
+    return <span className="badge badge-green">Open</span>;
+  };
+
+  const getSkillBadgeClass = (skill: string) => {
+    switch (skill) {
+      case 'beginner': return 'badge-green';
+      case 'intermediate': return 'badge-blue';
+      case 'advanced': return 'badge-yellow';
+      case 'professional': return 'badge-red';
+      default: return 'badge-gray';
+    }
+  };
+
+  const getTimeUntilMatch = (room: Room): { text: string; urgent: boolean } | null => {
+    if (room.status === 'completed' || room.status === 'cancelled') return null;
+
+    const now = new Date();
+    const matchDateTime = new Date(`${room.date}T${room.start_time}:00`);
+    const diffMs = matchDateTime.getTime() - now.getTime();
+
+    if (diffMs < 0) return { text: 'Started', urgent: false };
+
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+
+    if (diffHours < 1) return { text: `${diffMins}m`, urgent: true };
+    if (diffHours < 24) return { text: `${diffHours}h ${diffMins}m`, urgent: diffHours < 3 };
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays === 1) return { text: 'Tomorrow', urgent: false };
+    if (diffDays <= 7) return { text: `${diffDays} days`, urgent: false };
+    return null;
+  };
+
+  // Count rooms by status for the filter pills
+  const statusCounts = useMemo(() => {
+    return {
+      all: rooms.length,
+      open: rooms.filter(r => r.status === 'open' && r.current_players < r.max_players).length,
+      full: rooms.filter(r => r.current_players >= r.max_players || r.status === 'full').length,
+      completed: rooms.filter(r => r.status === 'completed').length,
+    };
+  }, [rooms]);
+
+  // Loading skeleton
   if (loading && rooms.length === 0) {
     return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
+      <div className="space-y-6">
+        {/* Header skeleton */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <div className="skeleton h-9 w-48 mb-2" />
+            <div className="skeleton h-5 w-72" />
+          </div>
+          <div className="skeleton h-11 w-40 rounded-lg" />
+        </div>
+        {/* Filter skeleton */}
+        <div className="card">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="skeleton h-10 flex-1 rounded-lg" />
+            <div className="skeleton h-10 w-40 rounded-lg" />
+            <div className="skeleton h-10 w-40 rounded-lg" />
+          </div>
+        </div>
+        {/* Card skeletons */}
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3, 4, 5, 6].map(i => (
+            <div key={i} className="card">
+              <div className="skeleton h-6 w-3/4 mb-4" />
+              <div className="space-y-3">
+                <div className="skeleton h-4 w-2/3" />
+                <div className="skeleton h-4 w-1/2" />
+                <div className="skeleton h-4 w-1/3" />
+              </div>
+              <div className="skeleton h-3 w-full mt-4 rounded-full" />
+              <div className="skeleton h-4 w-1/4 mt-3" />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -202,8 +333,8 @@ function RoomsContent() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Football Matches</h1>
-          <p className="text-gray-600 mt-1">Find and join games or create your own</p>
+          <h1 className="text-3xl font-bold font-heading text-gradient">Matches</h1>
+          <p className="text-slate-400 mt-1">Find and join football matches near you</p>
         </div>
         {user && (
           <button
@@ -218,75 +349,102 @@ function RoomsContent() {
 
       {/* Tabs */}
       {user && (
-        <div className="flex border-b border-gray-200">
+        <div className="flex border-b border-white/10">
           <button
             onClick={() => setActiveTab('rooms')}
-            className={`px-4 py-3 font-medium transition-colors ${
+            className={`px-4 py-3 font-medium text-sm transition-colors relative ${
               activeTab === 'rooms'
-                ? 'text-green-600 border-b-2 border-green-600'
-                : 'text-gray-500 hover:text-gray-700'
+                ? 'text-neon-green'
+                : 'text-slate-400 hover:text-white'
             }`}
           >
             All Matches
+            {activeTab === 'rooms' && (
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-neon-green shadow-glow-green-sm" />
+            )}
           </button>
           <button
             onClick={() => setActiveTab('requests')}
-            className={`px-4 py-3 font-medium transition-colors flex items-center space-x-2 ${
+            className={`px-4 py-3 font-medium text-sm transition-colors flex items-center space-x-2 relative ${
               activeTab === 'requests'
-                ? 'text-green-600 border-b-2 border-green-600'
-                : 'text-gray-500 hover:text-gray-700'
+                ? 'text-neon-green'
+                : 'text-slate-400 hover:text-white'
             }`}
           >
             <Bell className="w-4 h-4" />
             <span>Join Requests</span>
             {pendingRequests.length > 0 && (
-              <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
+              <span className="bg-neon-red text-white text-xs px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
                 {pendingRequests.length}
               </span>
+            )}
+            {activeTab === 'requests' && (
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-neon-green shadow-glow-green-sm" />
             )}
           </button>
           <button
             onClick={() => setActiveTab('my-requests')}
-            className={`px-4 py-3 font-medium transition-colors ${
+            className={`px-4 py-3 font-medium text-sm transition-colors relative ${
               activeTab === 'my-requests'
-                ? 'text-green-600 border-b-2 border-green-600'
-                : 'text-gray-500 hover:text-gray-700'
+                ? 'text-neon-green'
+                : 'text-slate-400 hover:text-white'
             }`}
           >
             My Requests
+            {activeTab === 'my-requests' && (
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-neon-green shadow-glow-green-sm" />
+            )}
           </button>
         </div>
       )}
 
       {activeTab === 'rooms' && (
         <>
-          {/* Filters */}
+          {/* Status Filter Pills */}
+          <div className="flex flex-wrap gap-2">
+            {([
+              { key: 'open' as StatusFilter, label: 'Open', count: statusCounts.open },
+              { key: 'full' as StatusFilter, label: 'Full', count: statusCounts.full },
+              { key: 'completed' as StatusFilter, label: 'Completed', count: statusCounts.completed },
+              { key: 'all' as StatusFilter, label: 'All', count: statusCounts.all },
+            ]).map(({ key, label, count }) => (
+              <button
+                key={key}
+                onClick={() => setFilterStatus(key)}
+                className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 ${
+                  filterStatus === key
+                    ? 'text-dark-950 shadow-glow-green-sm'
+                    : 'text-slate-400 hover:text-white hover:bg-white/10'
+                }`}
+                style={filterStatus === key
+                  ? { background: 'linear-gradient(135deg, #00ff88 0%, #00cc6a 100%)' }
+                  : { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }
+                }
+              >
+                {label}
+                <span className={`ml-1.5 text-xs ${filterStatus === key ? 'opacity-70' : 'text-slate-500'}`}>
+                  {count}
+                </span>
+              </button>
+            ))}
+          </div>
+
+          {/* Search, Filters & Sort Bar */}
           <div className="card">
-            <div className="flex items-center space-x-2 mb-4">
-              <Filter className="w-5 h-5 text-gray-600" />
-              <span className="font-medium">Filters</span>
-              {hasFilters && (
-                <button onClick={clearFilters} className="text-sm text-red-400 hover:text-red-300 ml-auto">
-                  Clear all
-                </button>
-              )}
-            </div>
-            <div className="grid md:grid-cols-3 gap-4">
-              <div>
-                <label className="label">Search</label>
+            <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-end">
+              <div className="flex-1">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-600" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-500" />
                   <input
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="input pl-10"
-                    placeholder="Search matches..."
+                    placeholder="Search matches or stadiums..."
                   />
                 </div>
               </div>
-              <div>
-                <label className="label">Skill Level</label>
+              <div className="w-full md:w-40">
                 <select
                   value={filterSkill}
                   onChange={(e) => setFilterSkill(e.target.value)}
@@ -299,8 +457,7 @@ function RoomsContent() {
                   <option value="professional">Professional</option>
                 </select>
               </div>
-              <div>
-                <label className="label">Date</label>
+              <div className="w-full md:w-40">
                 <input
                   type="date"
                   value={filterDate}
@@ -309,125 +466,309 @@ function RoomsContent() {
                   min={getTodayISO()}
                 />
               </div>
+              <div className="w-full md:w-48">
+                <div className="relative">
+                  <ArrowUpDown className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as SortOption)}
+                    className="input pl-10"
+                  >
+                    <option value="date-asc">Upcoming first</option>
+                    <option value="date-desc">Latest first</option>
+                    <option value="players-needed">Most spots open</option>
+                    <option value="newest">Recently created</option>
+                  </select>
+                </div>
+              </div>
+              {hasFilters && (
+                <button
+                  onClick={clearFilters}
+                  className="btn-secondary flex items-center justify-center space-x-1 text-sm whitespace-nowrap"
+                >
+                  <X className="w-3.5 h-3.5" />
+                  <span>Clear</span>
+                </button>
+              )}
             </div>
           </div>
 
-          {/* Room List */}
+          {/* Results count */}
+          {!loading && (
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-slate-500">
+                {filteredRooms.length} match{filteredRooms.length !== 1 ? 'es' : ''} found
+              </p>
+            </div>
+          )}
+
+          {/* Match Cards Grid */}
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {rooms.length > 0 ? (
-              rooms.map((room) => (
-                <Link
-                  key={room.id}
-                  href={`/rooms/${room.id}`}
-                  className="card hover:border-green-500/50 transition-colors"
-                >
-                  <div className="flex items-start justify-between mb-4">
-                    <h3 className="font-semibold text-lg">{room.title}</h3>
-                    <span className={`badge ${room.skill_level_required === 'any' ? 'badge-green' : 'badge-blue'}`}>
-                      {room.skill_level_required === 'any' ? 'All levels' : room.skill_level_required}
-                    </span>
-                  </div>
-                  <div className="space-y-2 text-gray-600">
-                    <div className="flex items-center space-x-2">
-                      <MapPin className="w-4 h-4" />
-                      <span>{getStadiumDisplayName(room)}</span>
+            {filteredRooms.length > 0 ? (
+              filteredRooms.map((room) => {
+                const playerPercent = Math.round((room.current_players / room.max_players) * 100);
+                const spotsLeft = room.max_players - room.current_players;
+                const price = room.stadium_price_per_hour || room.stadium?.price_per_hour;
+                const timeUntil = getTimeUntilMatch(room);
+                const relativeDay = getRelativeDay(room.date);
+
+                return (
+                  <Link
+                    key={room.id}
+                    href={`/rooms/${room.id}`}
+                    className="card group hover:shadow-card-hover hover:border-neon-green/20"
+                  >
+                    {/* Top row: title + status + time badge */}
+                    <div className="flex items-start justify-between gap-2 mb-3">
+                      <h3 className="font-semibold text-lg text-white group-hover:text-neon-green transition-colors line-clamp-1">
+                        {room.title}
+                      </h3>
+                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                        {timeUntil && (
+                          <span
+                            className={`inline-flex items-center space-x-1 px-2 py-0.5 rounded-full text-xs font-semibold ${
+                              timeUntil.urgent
+                                ? 'text-neon-amber'
+                                : 'text-neon-cyan'
+                            }`}
+                            style={{
+                              background: timeUntil.urgent
+                                ? 'rgba(255,170,0,0.15)'
+                                : 'rgba(0,212,255,0.1)',
+                              border: timeUntil.urgent
+                                ? '1px solid rgba(255,170,0,0.2)'
+                                : '1px solid rgba(0,212,255,0.15)',
+                            }}
+                          >
+                            <Timer className="w-3 h-3" />
+                            <span>{timeUntil.text}</span>
+                          </span>
+                        )}
+                        {getStatusBadge(room)}
+                      </div>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <Calendar className="w-4 h-4" />
-                      <span>{formatDateDisplay(room.date)}</span>
+
+                    {/* Info rows */}
+                    <div className="space-y-2 text-sm">
+                      <div className="flex items-center space-x-2 text-slate-300">
+                        <MapPin className="w-4 h-4 text-slate-500 flex-shrink-0" />
+                        <span className="truncate">{getStadiumDisplayName(room)}</span>
+                      </div>
+                      <div className="flex items-center space-x-4">
+                        <div className="flex items-center space-x-2 text-slate-300">
+                          <Calendar className="w-4 h-4 text-slate-500 flex-shrink-0" />
+                          <span>{formatDateDisplay(room.date)}</span>
+                        </div>
+                        {relativeDay && (relativeDay === 'Today' || relativeDay === 'Tomorrow') && (
+                          <span className={`text-xs font-semibold px-1.5 py-0.5 rounded ${
+                            relativeDay === 'Today'
+                              ? 'text-neon-amber bg-neon-amber/10'
+                              : 'text-neon-cyan bg-neon-cyan/10'
+                          }`}>
+                            {relativeDay}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center space-x-2 text-slate-300">
+                        <Clock className="w-4 h-4 text-slate-500 flex-shrink-0" />
+                        <span>{room.start_time} - {room.end_time}</span>
+                      </div>
+
+                      {/* Player count with progress bar */}
+                      <div className="pt-1">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <div className="flex items-center space-x-2 text-slate-300">
+                            <Users className="w-4 h-4 text-slate-500 flex-shrink-0" />
+                            <span>{room.current_players}/{room.max_players} players</span>
+                          </div>
+                          {spotsLeft > 0 && room.status === 'open' && (
+                            <span className="text-xs text-neon-green font-medium">
+                              {spotsLeft} spot{spotsLeft !== 1 ? 's' : ''} left
+                            </span>
+                          )}
+                        </div>
+                        <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                          <div
+                            className="h-full rounded-full transition-all duration-500"
+                            style={{
+                              width: `${playerPercent}%`,
+                              background: playerPercent >= 100
+                                ? 'linear-gradient(90deg, #ffaa00, #ff8800)'
+                                : playerPercent >= 75
+                                  ? 'linear-gradient(90deg, #00cc6a, #ffaa00)'
+                                  : 'linear-gradient(90deg, #00ff88, #00cc6a)',
+                            }}
+                          />
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <Clock className="w-4 h-4" />
-                      <span>{room.start_time} - {room.end_time}</span>
+
+                    {/* Bottom row: skill badge + price */}
+                    <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/5">
+                      <span className={`badge ${getSkillBadgeClass(room.skill_level_required)}`}>
+                        {room.skill_level_required === 'any' ? 'All levels' : room.skill_level_required}
+                      </span>
+                      {price ? (
+                        <span className="flex items-center space-x-1 text-neon-green text-sm font-medium">
+                          <DollarSign className="w-3.5 h-3.5" />
+                          <span>{price} AZN/hr</span>
+                        </span>
+                      ) : (
+                        <span className="text-xs text-slate-500">Free / TBD</span>
+                      )}
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <Users className="w-4 h-4" />
-                      <span>{room.current_players}/{room.max_players} players</span>
-                    </div>
-                    {(room.stadium_price_per_hour || room.stadium?.price_per_hour) && (
-                      <div className="flex items-center space-x-2 text-green-600">
-                        <span className="font-medium">₼</span>
-                        <span>{room.stadium_price_per_hour || room.stadium?.price_per_hour} AZN/hr</span>
+
+                    {/* Creator info */}
+                    {room.creator && (
+                      <div className="flex items-center space-x-2 mt-3 pt-3 border-t border-white/5">
+                        <div className="w-6 h-6 rounded-full bg-surface flex items-center justify-center overflow-hidden">
+                          {room.creator.avatar_url ? (
+                            <img
+                              src={room.creator.avatar_url}
+                              alt={room.creator.full_name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <Users className="w-3 h-3 text-slate-500" />
+                          )}
+                        </div>
+                        <span className="text-xs text-slate-500 truncate">
+                          by {room.creator.full_name}
+                        </span>
                       </div>
                     )}
-                  </div>
-                  {room.description && (
-                    <p className="mt-3 text-sm text-gray-500 line-clamp-2">{room.description}</p>
-                  )}
-                  <div className="mt-4 pt-4 border-t border-gray-200">
-                    <PlayerSlots
-                      maxPlayers={room.max_players}
-                      currentPlayers={room.current_players}
-                    />
-                    <p className="text-sm text-gray-500 mt-2">
-                      {room.max_players - room.current_players} spots left
-                    </p>
-                  </div>
-                </Link>
-              ))
+                  </Link>
+                );
+              })
             ) : (
-              <div className="md:col-span-3 text-center py-12">
-                <Users className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-                <h3 className="text-xl font-medium text-gray-600">No matches found</h3>
-                <p className="text-gray-500 mt-2">Try adjusting your filters or create a new match</p>
+              /* Enhanced empty state */
+              <div className="md:col-span-2 lg:col-span-3 text-center py-20">
+                <div className="w-24 h-24 mx-auto mb-6 rounded-full flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.03)', border: '2px dashed rgba(255,255,255,0.1)' }}>
+                  {searchQuery ? (
+                    <Search className="w-10 h-10 text-slate-600" />
+                  ) : filterStatus === 'completed' ? (
+                    <Trophy className="w-10 h-10 text-slate-600" />
+                  ) : (
+                    <Zap className="w-10 h-10 text-slate-600" />
+                  )}
+                </div>
+                <h3 className="text-xl font-semibold text-slate-300 mb-2">
+                  {searchQuery
+                    ? 'No matches found'
+                    : filterStatus === 'completed'
+                      ? 'No completed matches'
+                      : filterStatus === 'full'
+                        ? 'No full matches'
+                        : 'No open matches right now'
+                  }
+                </h3>
+                <p className="text-slate-500 mb-6 max-w-sm mx-auto">
+                  {searchQuery
+                    ? `No results for "${searchQuery}". Try adjusting your search or filters.`
+                    : filterStatus === 'open'
+                      ? 'Be the first to create a match and get players together!'
+                      : 'Try changing your filters to find what you\'re looking for.'
+                  }
+                </p>
+                <div className="flex flex-wrap items-center justify-center gap-3">
+                  {user && filterStatus === 'open' && (
+                    <button
+                      onClick={() => setShowCreateModal(true)}
+                      className="btn-primary inline-flex items-center space-x-2"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>Create Match</span>
+                    </button>
+                  )}
+                  {hasFilters && (
+                    <button
+                      onClick={clearFilters}
+                      className="btn-secondary inline-flex items-center space-x-2"
+                    >
+                      <X className="w-4 h-4" />
+                      <span>Clear Filters</span>
+                    </button>
+                  )}
+                </div>
               </div>
             )}
           </div>
         </>
       )}
 
+      {/* Pending Requests Tab */}
       {activeTab === 'requests' && user && (
         <div className="space-y-4">
-          <h2 className="text-xl font-bold">Pending Join Requests</h2>
+          <h2 className="text-xl font-bold font-heading text-white">Pending Join Requests</h2>
           {pendingRequests.length > 0 ? (
             pendingRequests.map((request) => (
-              <div key={request.id} className="card flex items-center justify-between">
-                <div>
-                  <p className="font-medium">{request.user?.full_name || 'Unknown User'}</p>
-                  <p className="text-sm text-gray-600">
-                    Wants to join: {request.room?.title}
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    Position: {request.user?.preferred_position} | Skill: {request.user?.skill_level}
-                  </p>
-                  {request.message && (
-                    <p className="text-sm text-gray-600 mt-1">&quot;{request.message}&quot;</p>
-                  )}
+              <div key={request.id} className="card flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 rounded-full bg-surface flex items-center justify-center overflow-hidden flex-shrink-0">
+                    {request.user?.avatar_url ? (
+                      <img
+                        src={request.user.avatar_url}
+                        alt={request.user.full_name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <Users className="w-5 h-5 text-slate-500" />
+                    )}
+                  </div>
+                  <div>
+                    <p className="font-medium text-white">{request.user?.full_name || 'Unknown User'}</p>
+                    <p className="text-sm text-slate-400">
+                      Wants to join: <span className="text-neon-cyan">{request.room?.title}</span>
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      {request.user?.preferred_position} | {request.user?.skill_level}
+                    </p>
+                    {request.message && (
+                      <p className="text-sm text-slate-400 mt-1 italic">&quot;{request.message}&quot;</p>
+                    )}
+                  </div>
                 </div>
-                <div className="flex space-x-2">
+                <div className="flex space-x-2 ml-auto sm:ml-0">
                   <button
                     onClick={() => handleRequestAction(request.id, 'approved')}
-                    className="p-2 bg-green-600 hover:bg-green-700 rounded-lg transition-colors"
+                    className="p-2.5 rounded-lg transition-all duration-200 hover:scale-105"
+                    style={{ background: 'rgba(0,255,136,0.15)', border: '1px solid rgba(0,255,136,0.3)' }}
+                    title="Approve"
                   >
-                    <Check className="w-5 h-5" />
+                    <Check className="w-5 h-5 text-neon-green" />
                   </button>
                   <button
                     onClick={() => handleRequestAction(request.id, 'rejected')}
-                    className="p-2 bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
+                    className="p-2.5 rounded-lg transition-all duration-200 hover:scale-105"
+                    style={{ background: 'rgba(255,68,68,0.15)', border: '1px solid rgba(255,68,68,0.3)' }}
+                    title="Reject"
                   >
-                    <X className="w-5 h-5" />
+                    <X className="w-5 h-5 text-neon-red" />
                   </button>
                 </div>
               </div>
             ))
           ) : (
-            <div className="card text-center py-8">
-              <Bell className="w-12 h-12 text-gray-600 mx-auto mb-3" />
-              <p className="text-gray-600">No pending requests</p>
+            <div className="card text-center py-12">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-white/5 flex items-center justify-center">
+                <Bell className="w-8 h-8 text-slate-600" />
+              </div>
+              <p className="text-slate-400">No pending requests</p>
             </div>
           )}
         </div>
       )}
 
+      {/* My Requests Tab */}
       {activeTab === 'my-requests' && user && (
         <div className="space-y-4">
-          <h2 className="text-xl font-bold">My Join Requests</h2>
+          <h2 className="text-xl font-bold font-heading text-white">My Join Requests</h2>
           {myRequests.length > 0 ? (
             myRequests.map((request) => (
               <div key={request.id} className="card flex items-center justify-between">
                 <div>
-                  <p className="font-medium">{request.room?.title || 'Unknown Room'}</p>
-                  <p className="text-sm text-gray-600">
+                  <p className="font-medium text-white">{request.room?.title || 'Unknown Room'}</p>
+                  <p className="text-sm text-slate-400">
                     {request.room?.stadium_name || request.room?.stadium?.name} | {request.room?.date && formatDateDisplay(request.room.date)}
                   </p>
                 </div>
@@ -440,25 +781,27 @@ function RoomsContent() {
               </div>
             ))
           ) : (
-            <div className="card text-center py-8">
-              <Users className="w-12 h-12 text-gray-600 mx-auto mb-3" />
-              <p className="text-gray-600">You haven&apos;t sent any join requests yet</p>
+            <div className="card text-center py-12">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-white/5 flex items-center justify-center">
+                <Users className="w-8 h-8 text-slate-600" />
+              </div>
+              <p className="text-slate-400">You haven&apos;t sent any join requests yet</p>
             </div>
           )}
         </div>
       )}
 
-      {/* Create Modal */}
+      {/* Create Match Modal */}
       {showCreateModal && user && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="card max-w-lg w-full max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="card max-w-lg w-full max-h-[90vh] overflow-y-auto glow-border">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold">Create New Match</h2>
+              <h2 className="text-xl font-bold font-heading text-gradient">Create New Match</h2>
               <button
                 onClick={() => setShowCreateModal(false)}
-                className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
+                className="p-2 rounded-lg transition-colors hover:bg-white/10"
               >
-                <X className="w-5 h-5" />
+                <X className="w-5 h-5 text-slate-400" />
               </button>
             </div>
             <form onSubmit={handleCreateRoom} className="space-y-4">
@@ -474,9 +817,12 @@ function RoomsContent() {
                 />
               </div>
 
-              {/* Custom Stadium Fields */}
-              <div className="p-4 bg-gray-800/50 rounded-lg space-y-4">
-                <h3 className="font-medium text-gray-300">Stadium / Location</h3>
+              {/* Stadium / Location section */}
+              <div className="p-4 rounded-lg space-y-4" style={{ background: 'rgba(15,22,41,0.6)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                <h3 className="font-medium text-slate-300 flex items-center space-x-2">
+                  <MapPin className="w-4 h-4 text-neon-green" />
+                  <span>Stadium / Location</span>
+                </h3>
                 <div>
                   <label className="label">Stadium Name *</label>
                   <input
@@ -510,17 +856,16 @@ function RoomsContent() {
                   />
                 </div>
 
-                {/* Location Picker Toggle */}
                 <div>
                   <button
                     type="button"
                     onClick={() => setShowLocationPicker(!showLocationPicker)}
-                    className="flex items-center space-x-2 text-sm text-green-400 hover:text-green-300"
+                    className="flex items-center space-x-2 text-sm text-neon-green hover:text-neon-cyan transition-colors"
                   >
                     <Map className="w-4 h-4" />
                     <span>{showLocationPicker ? 'Hide map' : 'Set location on map'}</span>
                     {newStadiumLat && newStadiumLng && (
-                      <span className="text-gray-500">(selected)</span>
+                      <span className="text-slate-500 text-xs">(selected)</span>
                     )}
                   </button>
                 </div>
@@ -545,12 +890,12 @@ function RoomsContent() {
                     type="text"
                     value={newDateInput}
                     onChange={(e) => handleDateInputChange(e.target.value)}
-                    className={`input ${dateError ? 'border-red-500' : ''}`}
+                    className={`input ${dateError ? 'border-neon-red' : ''}`}
                     placeholder="25/01"
                     maxLength={5}
                     required
                   />
-                  {dateError && <p className="text-red-400 text-sm mt-1">{dateError}</p>}
+                  {dateError && <p className="text-neon-red text-xs mt-1">{dateError}</p>}
                 </div>
                 <div>
                   <label className="label">Max Players</label>
@@ -614,8 +959,18 @@ function RoomsContent() {
                 />
               </div>
               <div className="flex space-x-3 pt-4">
-                <button type="submit" className="btn-primary flex-1" disabled={creating}>
-                  {creating ? 'Creating...' : 'Create Match'}
+                <button type="submit" className="btn-primary flex-1 flex items-center justify-center space-x-2" disabled={creating}>
+                  {creating ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Creating...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="w-4 h-4" />
+                      <span>Create Match</span>
+                    </>
+                  )}
                 </button>
                 <button
                   type="button"
@@ -637,7 +992,7 @@ export default function RoomsPage() {
   return (
     <Suspense fallback={
       <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
+        <Loader2 className="w-10 h-10 text-neon-green animate-spin" />
       </div>
     }>
       <RoomsContent />

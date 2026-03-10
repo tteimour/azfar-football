@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Zapolya Football - A platform to find players and manage football matches at premium stadiums in Baku, Azerbaijan.
+Tapadam Football - A platform to find players and manage football matches at premium stadiums in Baku, Azerbaijan.
 
 ## Commands
 
@@ -90,13 +90,13 @@ SMTP_HOST=smtp.example.com
 SMTP_PORT=587
 SMTP_USER=your-smtp-username
 SMTP_PASS=your-smtp-password
-EMAIL_FROM=noreply@zapolya.football
+EMAIL_FROM=noreply@football.innovariance.com
 
 # Cron job security
 CRON_SECRET=your-secure-random-string
 
 # App URL for email links
-NEXT_PUBLIC_APP_URL=https://zapolya.football
+NEXT_PUBLIC_APP_URL=https://football.innovariance.com
 ```
 
 ## Database

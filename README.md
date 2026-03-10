@@ -1,4 +1,4 @@
-# Zapolya Football
+# Tapadam Football
 
 A web platform to find players and organize football matches in Baku, Azerbaijan. Connect with football enthusiasts, create matches, and join games at local stadiums.
 
@@ -93,8 +93,8 @@ src/
 
 ```bash
 # Clone the repository
-git clone https://github.com/YOUR_USERNAME/zapolya-football.git
-cd zapolya-football
+git clone https://github.com/YOUR_USERNAME/tapadam-football.git
+cd tapadam-football
 
 # Install dependencies
 npm install
@@ -116,7 +116,7 @@ SMTP_HOST=smtp.example.com
 SMTP_PORT=587
 SMTP_USER=your-email
 SMTP_PASS=your-password
-EMAIL_FROM=noreply@zapolya.football
+EMAIL_FROM=noreply@football.innovariance.com
 CRON_SECRET=your-secret-key
 ```
 

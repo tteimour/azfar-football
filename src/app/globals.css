@@ -2,104 +2,296 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ========================================
+   Tapadam Football - Dark Gaming Theme
+   ======================================== */
+
 :root {
-  --zapolya-green: #00A651;
-  --zapolya-light: #f8fafc;
-  --zapolya-card: #ffffff;
+  --tapadam-green: #00ff88;
+  --tapadam-cyan: #00d4ff;
+  --tapadam-amber: #ffaa00;
+  --tapadam-red: #ff4444;
+  --tapadam-purple: #8b5cf6;
+  --tapadam-dark: #0a0e1a;
+  --tapadam-dark-alt: #0f1629;
+  --tapadam-surface: #1e293b;
+  --tapadam-surface-light: #334155;
+}
+
+/* ---- Base Styles ---- */
+
+html {
+  scroll-behavior: smooth;
+  color-scheme: dark;
 }
 
 body {
-  background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 50%, #f0fdfa 100%);
+  background: linear-gradient(180deg, #0a0e1a 0%, #0f1629 100%);
   min-height: 100vh;
-  color: #1f2937;
+  color: #e2e8f0;
+  font-family: var(--font-inter), Inter, system-ui, sans-serif;
 }
 
+::selection {
+  background: rgba(0, 255, 136, 0.3);
+  color: #ffffff;
+}
+
+/* ---- Scrollbar ---- */
+
+.scrollbar-dark::-webkit-scrollbar,
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.scrollbar-dark::-webkit-scrollbar-track,
+::-webkit-scrollbar-track {
+  background: #0f1629;
+}
+
+.scrollbar-dark::-webkit-scrollbar-thumb,
+::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 3px;
+}
+
+.scrollbar-dark::-webkit-scrollbar-thumb:hover,
+::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+/* ========================================
+   Component Layer
+   ======================================== */
+
 @layer components {
+  /* ---- Buttons ---- */
+
   .btn-primary {
-    @apply bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200 shadow-sm;
+    @apply relative font-semibold py-2.5 px-5 rounded-lg transition-all duration-200 text-sm tracking-wide;
+    background: linear-gradient(135deg, #00ff88 0%, #00cc6a 100%);
+    color: #0a0e1a;
+    box-shadow: 0 0 20px rgba(0, 255, 136, 0.25);
+  }
+  .btn-primary:hover {
+    transform: translateY(-1px) scale(1.02);
+    box-shadow: 0 0 30px rgba(0, 255, 136, 0.4), 0 4px 12px rgba(0, 0, 0, 0.3);
+    filter: brightness(1.1);
+  }
+  .btn-primary:active {
+    transform: translateY(0) scale(0.98);
+  }
+  .btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    filter: none;
   }
 
   .btn-secondary {
-    @apply bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-4 rounded-lg transition-colors duration-200 shadow-sm;
+    @apply font-semibold py-2.5 px-5 rounded-lg transition-all duration-200 text-sm tracking-wide;
+    background: rgba(255, 255, 255, 0.05);
+    color: #e2e8f0;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(8px);
+  }
+  .btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(0, 255, 136, 0.3);
+    box-shadow: 0 0 15px rgba(0, 255, 136, 0.1);
+    transform: translateY(-1px);
+  }
+  .btn-secondary:active {
+    transform: translateY(0);
   }
 
   .btn-danger {
-    @apply bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200 shadow-sm;
+    @apply font-semibold py-2.5 px-5 rounded-lg transition-all duration-200 text-sm tracking-wide;
+    background: linear-gradient(135deg, #ff4444 0%, #cc2233 100%);
+    color: #ffffff;
+    box-shadow: 0 0 15px rgba(255, 68, 68, 0.2);
   }
+  .btn-danger:hover {
+    transform: translateY(-1px) scale(1.02);
+    box-shadow: 0 0 25px rgba(255, 68, 68, 0.4), 0 4px 12px rgba(0, 0, 0, 0.3);
+    filter: brightness(1.1);
+  }
+  .btn-danger:active {
+    transform: translateY(0) scale(0.98);
+  }
+
+  /* ---- Card ---- */
 
   .card {
-    @apply bg-white/90 backdrop-blur-sm rounded-xl border border-gray-200 p-6 shadow-sm;
+    @apply rounded-xl p-6 transition-all duration-300;
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  }
+  .card:hover {
+    border-color: rgba(0, 255, 136, 0.15);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 20px rgba(0, 255, 136, 0.08);
   }
 
+  /* ---- Form Elements ---- */
+
   .input {
-    @apply w-full bg-white border border-gray-300 rounded-lg px-4 py-2 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent;
+    @apply w-full rounded-lg px-4 py-2.5 text-sm transition-all duration-200 outline-none;
+    background: rgba(15, 22, 41, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #e2e8f0;
+  }
+  .input::placeholder {
+    color: #64748b;
+  }
+  .input:focus {
+    border-color: rgba(0, 255, 136, 0.5);
+    box-shadow: 0 0 0 3px rgba(0, 255, 136, 0.1), 0 0 15px rgba(0, 255, 136, 0.05);
   }
 
   .label {
-    @apply block text-sm font-medium text-gray-700 mb-1;
+    @apply block text-xs font-semibold uppercase tracking-wider mb-1.5;
+    color: #94a3b8;
   }
 
+  /* ---- Navigation ---- */
+
   .nav-link {
-    @apply text-gray-600 hover:text-gray-900 transition-colors duration-200;
+    @apply relative transition-all duration-200 text-sm font-medium;
+    color: rgba(255, 255, 255, 0.6);
+  }
+  .nav-link:hover {
+    color: #ffffff;
+  }
+  .nav-link:hover::after {
+    content: '';
+    position: absolute;
+    bottom: -4px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: #00ff88;
+    border-radius: 1px;
   }
 
   .nav-link-active {
-    @apply text-green-600 font-semibold;
+    @apply relative text-sm font-semibold;
+    color: #ffffff;
+  }
+  .nav-link-active::after {
+    content: '';
+    position: absolute;
+    bottom: -4px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: #00ff88;
+    box-shadow: 0 0 8px rgba(0, 255, 136, 0.5);
+    border-radius: 1px;
   }
 
+  /* ---- Badges ---- */
+
   .badge {
-    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold tracking-wide;
   }
 
   .badge-green {
-    @apply bg-green-100 text-green-800;
+    background: rgba(0, 255, 136, 0.15);
+    color: #00ff88;
+    border: 1px solid rgba(0, 255, 136, 0.2);
   }
 
   .badge-yellow {
-    @apply bg-yellow-100 text-yellow-800;
+    background: rgba(255, 170, 0, 0.15);
+    color: #ffaa00;
+    border: 1px solid rgba(255, 170, 0, 0.2);
   }
 
   .badge-red {
-    @apply bg-red-100 text-red-800;
+    background: rgba(255, 68, 68, 0.15);
+    color: #ff4444;
+    border: 1px solid rgba(255, 68, 68, 0.2);
   }
 
   .badge-blue {
-    @apply bg-blue-100 text-blue-800;
+    background: rgba(0, 212, 255, 0.15);
+    color: #00d4ff;
+    border: 1px solid rgba(0, 212, 255, 0.2);
   }
 
   .badge-gray {
-    @apply bg-gray-100 text-gray-800;
+    background: rgba(255, 255, 255, 0.08);
+    color: #94a3b8;
+    border: 1px solid rgba(255, 255, 255, 0.1);
   }
 }
 
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-}
+/* ========================================
+   Utility Classes
+   ======================================== */
 
-::-webkit-scrollbar-track {
-  background: #f1f5f9;
-}
+@layer utilities {
+  /* ---- Glassmorphism ---- */
 
-::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
-}
-
-/* Animation for loading states */
-@keyframes pulse-green {
-  0%, 100% {
-    opacity: 1;
+  .glass {
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
   }
-  50% {
-    opacity: 0.5;
+
+  .glass-strong {
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+  }
+
+  /* ---- Gradient Text ---- */
+
+  .text-gradient {
+    background: linear-gradient(135deg, #00ff88 0%, #00d4ff 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* ---- Glow Border ---- */
+
+  .glow-border {
+    position: relative;
+    border: 1px solid rgba(0, 255, 136, 0.3);
+    box-shadow: 0 0 15px rgba(0, 255, 136, 0.1), inset 0 0 15px rgba(0, 255, 136, 0.05);
+  }
+
+  /* ---- Skeleton Loading ---- */
+
+  .skeleton {
+    background: linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.05) 25%,
+      rgba(255, 255, 255, 0.1) 50%,
+      rgba(255, 255, 255, 0.05) 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 2s linear infinite;
+    border-radius: 0.5rem;
   }
 }
 
-.animate-pulse-green {
-  animation: pulse-green 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+/* ========================================
+   Keyframes
+   ======================================== */
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
 }

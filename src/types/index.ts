@@ -9,6 +9,9 @@ export interface User {
   bio?: string;
   avatar_url?: string;
   games_played: number;
+  is_admin?: boolean;
+  banned_at?: string;
+  cover_photo?: string;
   created_at: string;
 }
 
@@ -97,7 +100,15 @@ export interface PlayerRating {
   created_at: string;
 }
 
-export type NotificationType = 'join_request' | 'request_approved' | 'request_rejected' | 'match_reminder' | 'match_completed';
+export interface WaitlistEntry {
+  id: string;
+  room_id: string;
+  user_id: string;
+  user?: User;
+  created_at: string;
+}
+
+export type NotificationType = 'join_request' | 'request_approved' | 'request_rejected' | 'match_reminder' | 'match_completed' | 'match_cancelled';
 
 export interface Notification {
   id: string;
@@ -119,4 +130,40 @@ export interface ChatMessage {
   user?: User;
   message: string;
   created_at: string;
+}
+
+export interface AdminUser extends User {
+  is_admin: boolean;
+  banned_at?: string;
+}
+
+export interface PublicProfile {
+  id: string;
+  full_name: string;
+  preferred_position: User['preferred_position'];
+  skill_level: User['skill_level'];
+  avatar_url?: string;
+  games_played: number;
+  bio?: string;
+  player_stats?: PlayerStats;
+}
+
+export type OAuthProvider = 'google' | 'github';
+
+export interface AdminStats {
+  total_users: number;
+  active_matches: number;
+  total_stadiums: number;
+  matches_this_week: number;
+}
+
+export interface StadiumForm {
+  name: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+  price_per_hour: number;
+  amenities: string[];
+  capacity: number;
+  image_url: string;
 }

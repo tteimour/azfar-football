@@ -1,23 +1,39 @@
 'use client';
 
-import { User, Room, JoinRequest, RoomParticipant, PlayerStats, PlayerRating } from '@/types';
+import { User, Room, JoinRequest, RoomParticipant, PlayerStats, PlayerRating, WaitlistEntry } from '@/types';
 import { sampleStadiums, sampleRooms, sampleUsers } from './sample-data';
 
 // Simple in-memory store for demo purposes
 // In production, this would be replaced with Supabase queries
 
 const STORAGE_KEYS = {
-  USER: 'zapolya_current_user',
-  ROOMS: 'zapolya_rooms',
-  REQUESTS: 'zapolya_requests',
-  PARTICIPANTS: 'zapolya_participants',
-  PLAYER_STATS: 'zapolya_player_stats',
-  PLAYER_RATINGS: 'zapolya_player_ratings',
+  USER: 'tapadam_current_user',
+  ROOMS: 'tapadam_rooms',
+  REQUESTS: 'tapadam_requests',
+  PARTICIPANTS: 'tapadam_participants',
+  PLAYER_STATS: 'tapadam_player_stats',
+  PLAYER_RATINGS: 'tapadam_player_ratings',
+  WAITLIST: 'tapadam_waitlist',
 };
 
 // Initialize data in localStorage if not present
 export function initializeStore() {
   if (typeof window === 'undefined') return;
+
+  // One-time migration: remove old sample rooms that were seeded before
+  const MIGRATION_KEY = 'tapadam_v2_cleaned';
+  if (!localStorage.getItem(MIGRATION_KEY)) {
+    const existingRooms = localStorage.getItem(STORAGE_KEYS.ROOMS);
+    if (existingRooms) {
+      try {
+        const rooms = JSON.parse(existingRooms);
+        const sampleTitles = ['Saturday Evening Match', 'Competitive 7v7', 'Sunday Morning Football'];
+        const cleaned = rooms.filter((r: Room) => !sampleTitles.includes(r.title));
+        localStorage.setItem(STORAGE_KEYS.ROOMS, JSON.stringify(cleaned));
+      } catch { /* ignore parse errors */ }
+    }
+    localStorage.setItem(MIGRATION_KEY, '1');
+  }
 
   if (!localStorage.getItem(STORAGE_KEYS.ROOMS)) {
     localStorage.setItem(STORAGE_KEYS.ROOMS, JSON.stringify(sampleRooms));
@@ -52,6 +68,15 @@ export function updateCurrentUser(updates: Partial<User>): User | null {
   const updated = { ...user, ...updates };
   setCurrentUser(updated);
   return updated;
+}
+
+export function getPublicProfile(userId: string): User | null {
+  // In demo mode, check if it's the current user
+  const currentUser = getCurrentUser();
+  if (currentUser?.id === userId) return currentUser;
+  // Check sample users
+  const sampleUser = sampleUsers.find(u => u.id === userId);
+  return sampleUser || null;
 }
 
 // Room functions
@@ -371,4 +396,82 @@ export function getRatingsForPlayer(userId: string): PlayerRating[] {
 
 export function getRatingsForRoom(roomId: string): PlayerRating[] {
   return getPlayerRatingsStore().filter(r => r.room_id === roomId);
+}
+
+// ============ Admin Functions ============
+
+export function getAdminStats() {
+  const rooms = getRooms();
+  return {
+    total_users: sampleUsers.length,
+    active_matches: rooms.filter(r => r.status === 'open').length,
+    total_stadiums: sampleStadiums.length,
+    matches_this_week: 2,
+  };
+}
+
+export function getAllUsers(): User[] {
+  return sampleUsers;
+}
+
+export function deleteRoom(roomId: string) {
+  if (typeof window === 'undefined') return;
+  // Remove the room
+  const rooms = getRooms();
+  const filtered = rooms.filter(r => r.id !== roomId);
+  localStorage.setItem(STORAGE_KEYS.ROOMS, JSON.stringify(filtered));
+  // Remove related participants
+  const participants = JSON.parse(localStorage.getItem(STORAGE_KEYS.PARTICIPANTS) || '[]');
+  localStorage.setItem(STORAGE_KEYS.PARTICIPANTS, JSON.stringify(
+    participants.filter((p: RoomParticipant) => p.room_id !== roomId)
+  ));
+  // Remove related join requests
+  const requests = getRequests();
+  localStorage.setItem(STORAGE_KEYS.REQUESTS, JSON.stringify(
+    requests.filter(r => r.room_id !== roomId)
+  ));
+  // Remove related ratings
+  const ratings = getPlayerRatingsStore();
+  savePlayerRatingsStore(ratings.filter(r => r.room_id !== roomId));
+  // Remove related waitlist entries
+  const waitlist = getWaitlist();
+  localStorage.setItem(STORAGE_KEYS.WAITLIST, JSON.stringify(
+    waitlist.filter(w => w.room_id !== roomId)
+  ));
+}
+
+// ============ Waitlist Functions ============
+
+function getWaitlist(): WaitlistEntry[] {
+  if (typeof window === 'undefined') return [];
+  const data = localStorage.getItem(STORAGE_KEYS.WAITLIST);
+  return data ? JSON.parse(data) : [];
+}
+
+export function getWaitlistForRoom(roomId: string): WaitlistEntry[] {
+  return getWaitlist().filter(w => w.room_id === roomId);
+}
+
+export function joinWaitlist(roomId: string, userId: string): WaitlistEntry {
+  const waitlist = getWaitlist();
+  const user = getCurrentUser();
+  const entry: WaitlistEntry = {
+    id: Date.now().toString(),
+    room_id: roomId,
+    user_id: userId,
+    user: user || undefined,
+    created_at: new Date().toISOString(),
+  };
+  waitlist.push(entry);
+  localStorage.setItem(STORAGE_KEYS.WAITLIST, JSON.stringify(waitlist));
+  return entry;
+}
+
+export function isUserOnWaitlist(userId: string, roomId: string): boolean {
+  return getWaitlist().some(w => w.user_id === userId && w.room_id === roomId);
+}
+
+export function leaveWaitlist(userId: string, roomId: string): void {
+  const waitlist = getWaitlist().filter(w => !(w.user_id === userId && w.room_id === roomId));
+  localStorage.setItem(STORAGE_KEYS.WAITLIST, JSON.stringify(waitlist));
 }

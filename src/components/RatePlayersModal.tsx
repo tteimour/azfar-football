@@ -31,6 +31,13 @@ const statLabels: Record<keyof RatingData, { name: string; description: string }
   physical: { name: 'Physical', description: 'Strength and stamina' },
 };
 
+const getStatColor = (value: number) => {
+  if (value >= 80) return '#00ff88';
+  if (value >= 60) return '#ffaa00';
+  if (value >= 40) return '#ff8800';
+  return '#ff4444';
+};
+
 function StatSlider({
   label,
   description,
@@ -42,34 +49,45 @@ function StatSlider({
   value: number;
   onChange: (value: number) => void;
 }) {
-  const getSliderColor = () => {
-    if (value >= 80) return 'bg-green-500';
-    if (value >= 60) return 'bg-yellow-500';
-    if (value >= 40) return 'bg-orange-500';
-    return 'bg-red-500';
-  };
+  const color = getStatColor(value);
+  const pct = ((value - 1) / 98) * 100;
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-1.5">
       <div className="flex items-center justify-between">
         <div>
-          <span className="font-medium text-white">{label}</span>
-          <p className="text-xs text-gray-400">{description}</p>
+          <span className="font-semibold text-sm text-white">{label}</span>
+          <p className="text-[11px] text-slate-500">{description}</p>
         </div>
-        <span className={`text-xl font-bold ${value >= 80 ? 'text-green-400' : value >= 60 ? 'text-yellow-400' : value >= 40 ? 'text-orange-400' : 'text-red-400'}`}>
+        <span
+          className="text-xl font-heading font-bold tabular-nums min-w-[2.5rem] text-right"
+          style={{ color }}
+        >
           {value}
         </span>
       </div>
-      <div className="relative">
+      <div className="relative h-2 rounded-full bg-dark-950 overflow-hidden">
+        <div
+          className="absolute inset-y-0 left-0 rounded-full transition-all duration-150"
+          style={{ width: `${pct}%`, background: color }}
+        />
         <input
           type="range"
           min="1"
           max="99"
           value={value}
           onChange={(e) => onChange(parseInt(e.target.value))}
-          className="w-full h-2 bg-gray-700 rounded-full appearance-none cursor-pointer slider"
+          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+        />
+      </div>
+      {/* Custom thumb indicator */}
+      <div className="relative h-0">
+        <div
+          className="absolute -top-[13px] w-3.5 h-3.5 rounded-full border-2 border-white shadow-lg transition-all duration-150 pointer-events-none"
           style={{
-            background: `linear-gradient(to right, ${value >= 80 ? '#22c55e' : value >= 60 ? '#eab308' : value >= 40 ? '#f97316' : '#ef4444'} 0%, ${value >= 80 ? '#22c55e' : value >= 60 ? '#eab308' : value >= 40 ? '#f97316' : '#ef4444'} ${value}%, #374151 ${value}%, #374151 100%)`,
+            left: `calc(${pct}% - 7px)`,
+            background: color,
+            boxShadow: `0 0 8px ${color}60`,
           }}
         />
       </div>
@@ -150,15 +168,15 @@ export default function RatePlayersModal({
 
   if (otherPlayers.length === 0) {
     return (
-      <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-        <div className="card max-w-md w-full">
+      <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="glass rounded-2xl p-6 max-w-md w-full animate-fade-in">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold">Rate Players</h2>
-            <button onClick={onClose} className="p-1 hover:bg-gray-700 rounded">
+            <h2 className="font-heading text-xl font-bold text-white">Rate Players</h2>
+            <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/10 transition-colors text-slate-400 hover:text-white">
               <X className="w-5 h-5" />
             </button>
           </div>
-          <p className="text-gray-400">No other players to rate in this match.</p>
+          <p className="text-slate-400 text-sm">No other players to rate in this match.</p>
         </div>
       </div>
     );
@@ -175,39 +193,39 @@ export default function RatePlayersModal({
   );
 
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 overflow-y-auto">
-      <div className="card max-w-lg w-full my-8">
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
+      <div className="glass rounded-2xl max-w-lg w-full my-8 animate-fade-in">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center space-x-2">
-            <Star className="w-5 h-5 text-yellow-500" />
-            <h2 className="text-xl font-bold">Rate Players</h2>
+        <div className="flex items-center justify-between px-6 pt-6 pb-4">
+          <div className="flex items-center gap-2.5">
+            <Star className="w-5 h-5 text-neon-amber" />
+            <h2 className="font-heading text-xl font-bold text-white">Rate Players</h2>
           </div>
-          <button onClick={onClose} className="p-1 hover:bg-gray-700 rounded">
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/10 transition-colors text-slate-400 hover:text-white">
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Progress Indicator */}
-        <div className="flex items-center justify-center space-x-1 mb-6">
+        {/* Progress dots */}
+        <div className="flex items-center justify-center gap-1.5 px-6 pb-4">
           {otherPlayers.map((_, index) => (
             <div
               key={index}
-              className={`w-2 h-2 rounded-full transition-colors ${
+              className={`h-1.5 rounded-full transition-all duration-300 ${
                 index === currentPlayerIndex
-                  ? 'bg-green-500'
+                  ? 'w-6 bg-neon-green shadow-glow-green-sm'
                   : index < currentPlayerIndex
-                  ? 'bg-green-500/50'
-                  : 'bg-gray-600'
+                  ? 'w-1.5 bg-neon-green/50'
+                  : 'w-1.5 bg-white/10'
               }`}
             />
           ))}
         </div>
 
         {/* Player Info */}
-        <div className="flex items-center justify-center mb-6">
+        <div className="flex items-center justify-center px-6 pb-5">
           <div className="text-center">
-            <div className="w-20 h-20 mx-auto mb-3 rounded-full overflow-hidden bg-gray-700 flex items-center justify-center">
+            <div className="w-20 h-20 mx-auto mb-3 rounded-full overflow-hidden bg-white/5 border-2 border-neon-green/30 shadow-glow-green-sm flex items-center justify-center">
               {currentPlayer.avatar_url ? (
                 <Image
                   src={currentPlayer.avatar_url}
@@ -217,14 +235,18 @@ export default function RatePlayersModal({
                   className="object-cover w-full h-full"
                 />
               ) : (
-                <UserIcon className="w-10 h-10 text-gray-400" />
+                <UserIcon className="w-10 h-10 text-slate-500" />
               )}
             </div>
-            <h3 className="text-lg font-bold">{currentPlayer.full_name}</h3>
-            <p className="text-sm text-gray-400 capitalize">{currentPlayer.preferred_position}</p>
-            <div className="mt-2 inline-flex items-center space-x-1 bg-gray-700 px-3 py-1 rounded-full">
-              <span className="text-sm text-gray-400">Overall:</span>
-              <span className={`font-bold ${overallRating >= 80 ? 'text-green-400' : overallRating >= 60 ? 'text-yellow-400' : 'text-orange-400'}`}>
+            <h3 className="font-heading text-lg font-bold text-white">{currentPlayer.full_name}</h3>
+            <p className="text-xs text-slate-400 capitalize mt-0.5">{currentPlayer.preferred_position}</p>
+            {/* Overall */}
+            <div className="mt-2.5 inline-flex items-center gap-1.5 bg-white/5 border border-white/10 px-3.5 py-1 rounded-full">
+              <span className="text-xs text-slate-400">Overall:</span>
+              <span
+                className="font-heading font-bold text-lg"
+                style={{ color: getStatColor(overallRating) }}
+              >
                 {overallRating}
               </span>
             </div>
@@ -232,7 +254,7 @@ export default function RatePlayersModal({
         </div>
 
         {/* Stat Sliders */}
-        <div className="space-y-4 mb-6">
+        <div className="space-y-5 px-6 pb-6">
           {(Object.keys(statLabels) as (keyof RatingData)[]).map((stat) => (
             <StatSlider
               key={stat}
@@ -245,24 +267,24 @@ export default function RatePlayersModal({
         </div>
 
         {/* Navigation */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between px-6 pb-6">
           <button
             onClick={handlePrev}
             disabled={currentPlayerIndex === 0}
-            className="btn-secondary flex items-center space-x-1 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="btn-secondary flex items-center gap-1.5 disabled:opacity-30 disabled:cursor-not-allowed"
           >
             <ChevronLeft className="w-4 h-4" />
             <span>Previous</span>
           </button>
 
-          <span className="text-sm text-gray-400">
-            {currentPlayerIndex + 1} of {otherPlayers.length}
+          <span className="text-sm text-slate-500 font-medium tabular-nums">
+            {currentPlayerIndex + 1}/{otherPlayers.length}
           </span>
 
           {currentPlayerIndex < otherPlayers.length - 1 ? (
             <button
               onClick={handleNext}
-              className="btn-primary flex items-center space-x-1"
+              className="btn-primary flex items-center gap-1.5"
             >
               <span>Next</span>
               <ChevronRight className="w-4 h-4" />
@@ -271,7 +293,7 @@ export default function RatePlayersModal({
             <button
               onClick={handleSubmit}
               disabled={submitting}
-              className="btn-primary flex items-center space-x-1"
+              className="btn-primary flex items-center gap-1.5"
             >
               <Check className="w-4 h-4" />
               <span>{submitting ? 'Submitting...' : 'Submit All'}</span>
@@ -279,27 +301,6 @@ export default function RatePlayersModal({
           )}
         </div>
       </div>
-
-      <style jsx>{`
-        .slider::-webkit-slider-thumb {
-          -webkit-appearance: none;
-          width: 16px;
-          height: 16px;
-          background: white;
-          border-radius: 50%;
-          cursor: pointer;
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-        }
-        .slider::-moz-range-thumb {
-          width: 16px;
-          height: 16px;
-          background: white;
-          border-radius: 50%;
-          cursor: pointer;
-          border: none;
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-        }
-      `}</style>
     </div>
   );
 }

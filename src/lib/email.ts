@@ -85,7 +85,7 @@ export async function sendMatchReminder(data: MatchReminderData): Promise<boolea
       <body>
         <div class="container">
           <div class="header">
-            <div class="logo">Z</div>
+            <div class="logo">T</div>
             <h1>Match Reminder</h1>
             <p>Your football match is starting soon!</p>
           </div>
@@ -124,7 +124,7 @@ export async function sendMatchReminder(data: MatchReminderData): Promise<boolea
 
           <div class="footer">
             <p>See you on the field!</p>
-            <p>Zapolya Football</p>
+            <p>Tapadam Football</p>
           </div>
         </div>
       </body>
@@ -132,7 +132,7 @@ export async function sendMatchReminder(data: MatchReminderData): Promise<boolea
     `;
 
     await transporter.sendMail({
-      from: `"Zapolya Football" <${config.from}>`,
+      from: `"Tapadam Football" <${config.from}>`,
       to: data.to,
       subject: `Reminder: ${data.matchTitle} starts in 2 hours`,
       html: htmlContent,

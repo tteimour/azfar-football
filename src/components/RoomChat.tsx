@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Image from 'next/image';
-import { Send, User, MessageCircle } from 'lucide-react';
+import { Send, User, MessageCircle, ChevronDown } from 'lucide-react';
 import { useAuth } from './AuthProvider';
 import { ChatMessage } from '@/types';
 import { isDemoMode } from '@/lib/supabase';
@@ -85,7 +85,8 @@ export default function RoomChat({ roomId, isParticipant }: RoomChatProps) {
       if (isDemoMode) {
         sentMessage = chatStore.sendChatMessage(roomId, user.id, newMessage.trim(), user);
         if (sentMessage) {
-          setMessages(prev => [...prev, sentMessage]);
+          const msg = sentMessage;
+          setMessages(prev => [...prev, msg]);
         }
       } else {
         sentMessage = await chat.sendChatMessage(roomId, user.id, newMessage.trim());
@@ -102,97 +103,113 @@ export default function RoomChat({ roomId, isParticipant }: RoomChatProps) {
 
   if (!isParticipant) {
     return (
-      <div className="card">
-        <div className="flex items-center space-x-2 text-gray-400">
-          <MessageCircle className="w-5 h-5" />
-          <span>Join the match to access the chat</span>
+      <div className="glass rounded-xl p-5">
+        <div className="flex items-center gap-3 text-slate-400">
+          <MessageCircle className="w-5 h-5 text-neon-green/50" />
+          <span className="text-sm">Join the match to access the chat</span>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="card">
+    <div className="glass rounded-xl overflow-hidden">
+      {/* Header */}
       <button
         onClick={() => setIsCollapsed(!isCollapsed)}
-        className="flex items-center justify-between w-full text-left"
+        className="flex items-center justify-between w-full px-5 py-4 hover:bg-white/[0.02] transition-colors"
       >
-        <h2 className="text-xl font-bold flex items-center space-x-2">
-          <MessageCircle className="w-5 h-5" />
-          <span>Chat</span>
+        <div className="flex items-center gap-3">
+          <MessageCircle className="w-5 h-5 text-neon-green" />
+          <h2 className="font-heading font-bold text-lg text-white">Chat</h2>
           {messages.length > 0 && (
-            <span className="text-sm font-normal text-gray-400">
-              ({messages.length} messages)
+            <span className="badge badge-green text-xs">
+              {messages.length}
             </span>
           )}
-        </h2>
-        <span className="text-gray-400 text-sm">
-          {isCollapsed ? 'Show' : 'Hide'}
-        </span>
+        </div>
+        <ChevronDown
+          className={`w-5 h-5 text-slate-400 transition-transform duration-300 ${
+            isCollapsed ? '-rotate-90' : 'rotate-0'
+          }`}
+        />
       </button>
 
-      {!isCollapsed && (
-        <div className="mt-4">
+      {/* Collapsible body */}
+      <div
+        className={`transition-all duration-300 ease-in-out overflow-hidden ${
+          isCollapsed ? 'max-h-0' : 'max-h-[500px]'
+        }`}
+      >
+        <div className="px-5 pb-5">
           {/* Messages Container */}
-          <div className="h-64 overflow-y-auto bg-gray-100 rounded-lg p-4 space-y-3">
+          <div className="h-64 overflow-y-auto rounded-lg bg-dark-950/60 p-4 space-y-3 scrollbar-dark">
             {loading ? (
               <div className="flex items-center justify-center h-full">
-                <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-green-500"></div>
+                <div className="w-6 h-6 border-2 border-neon-green/30 border-t-neon-green rounded-full animate-spin" />
               </div>
             ) : messages.length > 0 ? (
               <>
-                {messages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={`flex items-start space-x-3 ${
-                      message.user_id === user?.id ? 'flex-row-reverse space-x-reverse' : ''
-                    }`}
-                  >
-                    <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0 overflow-hidden">
-                      {message.user?.avatar_url ? (
-                        <Image
-                          src={message.user.avatar_url}
-                          alt={message.user.full_name || 'User'}
-                          width={32}
-                          height={32}
-                          className="object-cover w-full h-full"
-                        />
-                      ) : (
-                        <User className="w-4 h-4 text-gray-500" />
-                      )}
-                    </div>
+                {messages.map((message) => {
+                  const isOwn = message.user_id === user?.id;
+                  return (
                     <div
-                      className={`max-w-[70%] ${
-                        message.user_id === user?.id
-                          ? 'bg-green-100 rounded-tl-lg'
-                          : 'bg-white rounded-tr-lg shadow-sm'
-                      } rounded-bl-lg rounded-br-lg p-3`}
+                      key={message.id}
+                      className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}
                     >
-                      <div className="flex items-center space-x-2 mb-1">
-                        <span className="text-xs font-medium text-gray-700">
-                          {message.user?.full_name || 'Unknown'}
-                        </span>
-                        <span className="text-xs text-gray-400">
-                          {formatTime(message.created_at)}
-                        </span>
+                      <div className={`flex items-start gap-2.5 max-w-[75%] ${isOwn ? 'flex-row-reverse' : ''}`}>
+                        {/* Avatar */}
+                        <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                          {message.user?.avatar_url ? (
+                            <Image
+                              src={message.user.avatar_url}
+                              alt={message.user.full_name || 'User'}
+                              width={28}
+                              height={28}
+                              className="object-cover w-full h-full"
+                            />
+                          ) : (
+                            <User className="w-3.5 h-3.5 text-slate-500" />
+                          )}
+                        </div>
+
+                        {/* Message bubble */}
+                        <div
+                          className={`rounded-xl px-3.5 py-2.5 ${
+                            isOwn
+                              ? 'bg-neon-green/10 border-l-2 border-neon-green'
+                              : 'bg-white/5'
+                          }`}
+                        >
+                          <div className={`flex items-center gap-2 mb-1 ${isOwn ? 'justify-end' : ''}`}>
+                            <span className={`text-[11px] font-semibold ${isOwn ? 'text-neon-green' : 'text-neon-cyan'}`}>
+                              {message.user?.full_name || 'Unknown'}
+                            </span>
+                            <span className="text-[10px] text-slate-500">
+                              {formatTime(message.created_at)}
+                            </span>
+                          </div>
+                          <p className="text-sm text-slate-200 break-words leading-relaxed">
+                            {message.message}
+                          </p>
+                        </div>
                       </div>
-                      <p className="text-sm text-gray-900 break-words">{message.message}</p>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
                 <div ref={messagesEndRef} />
               </>
             ) : (
-              <div className="flex flex-col items-center justify-center h-full text-gray-400">
-                <MessageCircle className="w-8 h-8 mb-2 opacity-50" />
-                <p className="text-sm">No messages yet</p>
-                <p className="text-xs">Be the first to say hello!</p>
+              <div className="flex flex-col items-center justify-center h-full text-slate-500">
+                <MessageCircle className="w-8 h-8 mb-2 opacity-30" />
+                <p className="text-sm font-medium">No messages yet.</p>
+                <p className="text-xs mt-0.5">Start the conversation!</p>
               </div>
             )}
           </div>
 
           {/* Message Input */}
-          <form onSubmit={handleSendMessage} className="mt-3 flex space-x-2">
+          <form onSubmit={handleSendMessage} className="mt-3 flex gap-2">
             <input
               type="text"
               value={newMessage}
@@ -204,13 +221,13 @@ export default function RoomChat({ roomId, isParticipant }: RoomChatProps) {
             <button
               type="submit"
               disabled={!newMessage.trim() || sending}
-              className="btn-primary px-4 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center justify-center w-10 h-10 rounded-lg bg-neon-green/10 border border-neon-green/20 text-neon-green hover:bg-neon-green/20 hover:shadow-glow-green-sm transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-neon-green/10 disabled:hover:shadow-none"
             >
               <Send className="w-4 h-4" />
             </button>
           </form>
         </div>
-      )}
+      </div>
     </div>
   );
 }

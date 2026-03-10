@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Bell, Check, Trash2, X, Users, CheckCircle, XCircle, Clock, Star } from 'lucide-react';
+import { Bell, Check, Trash2, X, Users, CheckCircle, XCircle, Clock, Star, BellOff } from 'lucide-react';
 import Link from 'next/link';
 import { useAuth } from './AuthProvider';
 import { Notification, NotificationType } from '@/types';
@@ -12,17 +12,34 @@ import * as notificationStore from '@/lib/notificationStore';
 const getIcon = (type: NotificationType) => {
   switch (type) {
     case 'join_request':
-      return <Users className="w-4 h-4 text-blue-400" />;
+      return <Users className="w-4 h-4 text-neon-cyan" />;
     case 'request_approved':
-      return <CheckCircle className="w-4 h-4 text-green-400" />;
+      return <CheckCircle className="w-4 h-4 text-neon-green" />;
     case 'request_rejected':
-      return <XCircle className="w-4 h-4 text-red-400" />;
+      return <XCircle className="w-4 h-4 text-neon-red" />;
     case 'match_reminder':
-      return <Clock className="w-4 h-4 text-yellow-400" />;
+      return <Clock className="w-4 h-4 text-neon-amber" />;
     case 'match_completed':
-      return <Star className="w-4 h-4 text-purple-400" />;
+      return <Star className="w-4 h-4 text-neon-purple" />;
     default:
-      return <Bell className="w-4 h-4 text-gray-400" />;
+      return <Bell className="w-4 h-4 text-white/40" />;
+  }
+};
+
+const getBorderColor = (type: NotificationType) => {
+  switch (type) {
+    case 'join_request':
+      return 'border-l-neon-cyan';
+    case 'request_approved':
+      return 'border-l-neon-green';
+    case 'request_rejected':
+      return 'border-l-neon-red';
+    case 'match_reminder':
+      return 'border-l-neon-amber';
+    case 'match_completed':
+      return 'border-l-neon-purple';
+    default:
+      return 'border-l-white/20';
   }
 };
 
@@ -81,7 +98,6 @@ export default function NotificationBadge() {
     if (user) {
       loadNotifications();
 
-      // Set up real-time subscription (only works in production mode)
       if (!isDemoMode) {
         const unsubscribe = notifications.subscribeToNotifications(user.id, (newNotification) => {
           setNotificationList(prev => [newNotification, ...prev]);
@@ -155,27 +171,27 @@ export default function NotificationBadge() {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="relative p-2 text-gray-400 hover:text-white transition-colors"
+        className="relative p-2 text-white/50 hover:text-white transition-colors rounded-lg hover:bg-white/5"
         aria-label="Notifications"
       >
         <Bell className="w-5 h-5" />
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
+          <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 bg-neon-green text-dark-950 text-[10px] font-bold rounded-full flex items-center justify-center animate-pulse-green">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white border border-gray-200 rounded-lg shadow-xl z-50 max-h-[80vh] overflow-hidden flex flex-col">
+        <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-dark-900/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl shadow-black/40 z-50 max-h-[80vh] overflow-hidden flex flex-col animate-slide-down">
           {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-gray-200">
-            <h3 className="font-semibold text-gray-900">Notifications</h3>
+          <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
+            <h3 className="font-heading font-semibold text-white">Notifications</h3>
             <div className="flex items-center space-x-2">
               {unreadCount > 0 && (
                 <button
                   onClick={handleMarkAllAsRead}
-                  className="text-xs text-green-400 hover:text-green-300 flex items-center space-x-1"
+                  className="text-xs text-neon-green/70 hover:text-neon-green flex items-center space-x-1 transition-colors"
                 >
                   <Check className="w-3 h-3" />
                   <span>Mark all read</span>
@@ -183,59 +199,62 @@ export default function NotificationBadge() {
               )}
               <button
                 onClick={() => setIsOpen(false)}
-                className="p-1 hover:bg-gray-100 rounded"
+                className="p-1 hover:bg-white/10 rounded-md transition-colors"
               >
-                <X className="w-4 h-4 text-gray-400" />
+                <X className="w-4 h-4 text-white/40" />
               </button>
             </div>
           </div>
 
           {/* Notifications List */}
-          <div className="overflow-y-auto flex-1">
+          <div className="overflow-y-auto flex-1 scrollbar-dark">
             {loading ? (
-              <div className="flex items-center justify-center py-8">
-                <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-green-500"></div>
+              <div className="flex items-center justify-center py-10">
+                <div className="w-6 h-6 border-2 border-neon-green/30 border-t-neon-green rounded-full animate-spin" />
               </div>
             ) : notificationList.length > 0 ? (
-              <div className="divide-y divide-gray-700">
+              <div className="divide-y divide-white/5">
                 {notificationList.map((notification) => (
                   <div
                     key={notification.id}
                     onClick={() => !notification.is_read && handleMarkAsRead(notification.id)}
-                    className={`p-4 hover:bg-gray-100/50 cursor-pointer transition-colors ${
-                      !notification.is_read ? 'bg-gray-700/30' : ''
+                    className={`group px-4 py-3 hover:bg-white/5 cursor-pointer transition-all duration-200 border-l-2 ${getBorderColor(notification.type)} ${
+                      !notification.is_read ? 'bg-white/[0.03]' : ''
                     }`}
                   >
                     <div className="flex items-start space-x-3">
-                      <div className="flex-shrink-0 mt-1">
+                      <div className="flex-shrink-0 mt-0.5">
                         {getIcon(notification.type)}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between">
-                          <p className={`text-sm font-medium ${!notification.is_read ? 'text-white' : 'text-gray-300'}`}>
+                          <p className={`text-sm font-medium leading-tight ${!notification.is_read ? 'text-white' : 'text-white/60'}`}>
                             {notification.title}
                           </p>
                           <button
                             onClick={(e) => handleDelete(notification.id, e)}
-                            className="ml-2 p-1 hover:bg-gray-600 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                            className="ml-2 p-1 hover:bg-white/10 rounded opacity-0 group-hover:opacity-100 transition-all"
                           >
-                            <Trash2 className="w-3 h-3 text-gray-400 hover:text-red-400" />
+                            <Trash2 className="w-3 h-3 text-white/30 hover:text-neon-red" />
                           </button>
                         </div>
                         {notification.message && (
-                          <p className="text-sm text-gray-400 mt-1 line-clamp-2">
+                          <p className="text-xs text-white/40 mt-1 line-clamp-2">
                             {notification.message}
                           </p>
                         )}
-                        <div className="flex items-center justify-between mt-2">
-                          <span className="text-xs text-gray-500">
+                        <div className="flex items-center justify-between mt-1.5">
+                          <span className="text-[10px] text-white/30">
                             {formatTime(notification.created_at)}
                           </span>
                           {notification.room_id && (
                             <Link
                               href={`/rooms/${notification.room_id}`}
-                              onClick={(e) => e.stopPropagation()}
-                              className="text-xs text-green-400 hover:text-green-300"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setIsOpen(false);
+                              }}
+                              className="text-[10px] text-neon-green/60 hover:text-neon-green transition-colors"
                             >
                               View match
                             </Link>
@@ -243,16 +262,17 @@ export default function NotificationBadge() {
                         </div>
                       </div>
                       {!notification.is_read && (
-                        <div className="w-2 h-2 bg-green-500 rounded-full flex-shrink-0 mt-2"></div>
+                        <div className="w-2 h-2 bg-neon-green rounded-full flex-shrink-0 mt-1.5 shadow-[0_0_6px_rgba(0,255,136,0.4)]" />
                       )}
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center py-12 text-gray-400">
-                <Bell className="w-12 h-12 mb-3 opacity-50" />
-                <p className="text-sm">No notifications yet</p>
+              <div className="flex flex-col items-center justify-center py-12 text-white/30">
+                <BellOff className="w-10 h-10 mb-3" />
+                <p className="text-sm font-medium">No notifications</p>
+                <p className="text-xs text-white/20 mt-1">You&apos;re all caught up</p>
               </div>
             )}
           </div>

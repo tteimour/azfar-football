@@ -3,9 +3,18 @@
 import { isDemoMode } from './supabase';
 import * as store from './store';
 import * as database from './database';
-import { Room, Stadium, JoinRequest, RoomParticipant, PlayerStats, PlayerRating, User } from '@/types';
+import { Room, Stadium, JoinRequest, RoomParticipant, PlayerStats, PlayerRating, User, AdminStats, WaitlistEntry } from '@/types';
 
 // Unified data layer that routes between demo (localStorage) and production (Supabase)
+
+// ============ Profile Functions ============
+
+export async function getPublicProfile(userId: string): Promise<User | null> {
+  if (isDemoMode) {
+    return store.getPublicProfile(userId);
+  }
+  return database.getPublicProfile(userId);
+}
 
 // ============ Stadium Functions ============
 
@@ -205,4 +214,57 @@ export async function getRatingsForRoom(roomId: string): Promise<PlayerRating[]>
     return store.getRatingsForRoom(roomId);
   }
   return database.getRatingsForRoom(roomId);
+}
+
+// ============ Admin Functions ============
+
+export async function getAdminStats(): Promise<AdminStats> {
+  if (isDemoMode) {
+    return store.getAdminStats();
+  }
+  return database.getAdminStats();
+}
+
+export async function getAllUsers(): Promise<User[]> {
+  if (isDemoMode) {
+    return store.getAllUsers();
+  }
+  return database.getAllUsers();
+}
+
+export async function deleteRoom(roomId: string): Promise<void> {
+  if (isDemoMode) {
+    return store.deleteRoom(roomId);
+  }
+  return database.deleteRoom(roomId);
+}
+
+// ============ Waitlist Functions ============
+
+export async function getWaitlistForRoom(roomId: string): Promise<WaitlistEntry[]> {
+  if (isDemoMode) {
+    return store.getWaitlistForRoom(roomId);
+  }
+  return database.getWaitlistForRoom(roomId);
+}
+
+export async function joinWaitlist(roomId: string, userId: string): Promise<WaitlistEntry | null> {
+  if (isDemoMode) {
+    return store.joinWaitlist(roomId, userId);
+  }
+  return database.joinWaitlist(roomId, userId);
+}
+
+export async function isUserOnWaitlist(userId: string, roomId: string): Promise<boolean> {
+  if (isDemoMode) {
+    return store.isUserOnWaitlist(userId, roomId);
+  }
+  return database.isUserOnWaitlist(userId, roomId);
+}
+
+export async function leaveWaitlist(userId: string, roomId: string): Promise<void> {
+  if (isDemoMode) {
+    return store.leaveWaitlist(userId, roomId);
+  }
+  return database.leaveWaitlist(userId, roomId);
 }

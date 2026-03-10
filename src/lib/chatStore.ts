@@ -1,6 +1,6 @@
 import { ChatMessage, User } from '@/types';
 
-const STORAGE_KEY = 'zapolya_chat_messages';
+const STORAGE_KEY = 'tapadam_chat_messages';
 
 function getChatMessagesFromStorage(): ChatMessage[] {
   if (typeof window === 'undefined') return [];

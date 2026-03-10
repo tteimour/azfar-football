@@ -40,15 +40,20 @@ export default function LocationPicker({
       try {
         const L = (await import('leaflet')).default;
 
-        // Fix default marker icon
-        const icon = L.icon({
-          iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-          iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-          shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-          iconSize: [25, 41],
-          iconAnchor: [12, 41],
-          popupAnchor: [1, -34],
-          shadowSize: [41, 41],
+        // Custom green marker using divIcon
+        const greenIcon = L.divIcon({
+          html: `<div style="
+            width: 24px; height: 24px;
+            background: #00ff88;
+            border: 3px solid #0a0e1a;
+            border-radius: 50% 50% 50% 0;
+            transform: rotate(-45deg);
+            box-shadow: 0 0 10px rgba(0,255,136,0.5);
+          "></div>`,
+          iconSize: [24, 24],
+          iconAnchor: [12, 24],
+          popupAnchor: [0, -24],
+          className: '',
         });
 
         // Mark as initialized before creating map
@@ -60,14 +65,15 @@ export default function LocationPicker({
           zoom: 14,
         });
 
-        // Add tile layer
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+        // Dark tile layer
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>',
+          maxZoom: 19,
         }).addTo(map);
 
         // Add draggable marker
         const marker = L.marker([selectedLat, selectedLng], {
-          icon,
+          icon: greenIcon,
           draggable: true,
         }).addTo(map);
 
@@ -144,10 +150,10 @@ export default function LocationPicker({
   if (!isClient) {
     return (
       <div
-        className="bg-gray-800 rounded-lg flex items-center justify-center"
+        className="bg-dark-900 rounded-xl flex items-center justify-center border border-white/10"
         style={{ height }}
       >
-        <div className="text-center text-gray-400">
+        <div className="text-center text-slate-500">
           <MapPin className="w-8 h-8 mx-auto mb-2" />
           <p className="text-sm">Loading...</p>
         </div>
@@ -167,27 +173,36 @@ export default function LocationPicker({
 
       {/* Controls */}
       <div className="flex items-center justify-between">
-        <p className="text-sm text-gray-400">
-          Click on the map or drag the marker to set location
+        <p className="text-sm text-slate-400">
+          Click on the map to set location
         </p>
         <button
           type="button"
           onClick={handleGetCurrentLocation}
-          className="flex items-center space-x-1 text-sm text-green-400 hover:text-green-300"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg glass text-neon-green text-sm hover:bg-white/10 transition-all"
         >
-          <Navigation className="w-4 h-4" />
+          <Navigation className="w-3.5 h-3.5" />
           <span>Use my location</span>
         </button>
       </div>
 
       {/* Map Container */}
-      <div className="relative rounded-lg overflow-hidden border border-gray-700" style={{ height }}>
+      <div
+        className="relative rounded-xl overflow-hidden border border-white/10"
+        style={{ height }}
+      >
+        {/* Instruction overlay */}
+        {mapLoaded && !latitude && !longitude && (
+          <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[1000] px-3 py-1.5 rounded-full bg-dark-900/90 border border-white/10 text-xs text-slate-300 backdrop-blur-sm pointer-events-none">
+            Click on the map to set location
+          </div>
+        )}
         {/* Loading overlay */}
         {!mapLoaded && (
           <div
-            className="absolute inset-0 bg-gray-800 flex items-center justify-center z-10"
+            className="absolute inset-0 bg-dark-900 flex items-center justify-center z-10"
           >
-            <div className="text-center text-gray-400">
+            <div className="text-center text-slate-500">
               <MapPin className="w-8 h-8 mx-auto mb-2 animate-pulse" />
               <p className="text-sm">Loading map...</p>
             </div>
@@ -201,9 +216,9 @@ export default function LocationPicker({
       </div>
 
       {/* Coordinates Display */}
-      <div className="flex items-center justify-between text-xs text-gray-500">
-        <span>Lat: {selectedLat.toFixed(6)}</span>
-        <span>Lng: {selectedLng.toFixed(6)}</span>
+      <div className="flex items-center justify-between text-xs text-slate-500 px-1">
+        <span className="font-mono">Lat: {selectedLat.toFixed(6)}</span>
+        <span className="font-mono">Lng: {selectedLng.toFixed(6)}</span>
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
--- Zapolya Football Migration 003
+-- Tapadam Football Migration 003
 -- Adds notifications, chat messages, and inline stadium fields on rooms
 
 -- ============================================

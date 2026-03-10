@@ -8,8 +8,28 @@ import { uploadAvatar } from '@/lib/storage';
 import { Room, PlayerStats } from '@/types';
 import Link from 'next/link';
 import Image from 'next/image';
-import { User, Mail, Phone, Calendar, Trophy, MapPin, Clock, Edit2, Save, X, Camera } from 'lucide-react';
+import {
+  User,
+  Mail,
+  Phone,
+  Calendar,
+  Trophy,
+  MapPin,
+  Clock,
+  Edit2,
+  Save,
+  X,
+  Camera,
+  Shield,
+  Zap,
+  Users,
+  ChevronRight,
+  PlusCircle,
+  History,
+  TrendingUp,
+} from 'lucide-react';
 import PlayerCard from '@/components/PlayerCard';
+import { formatDateDisplay } from '@/lib/dateUtils';
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -69,7 +89,7 @@ export default function ProfilePage() {
   if (loading || !user) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-neon-green"></div>
       </div>
     );
   }
@@ -97,13 +117,11 @@ export default function ProfilePage() {
     const file = e.target.files?.[0];
     if (!file || !user) return;
 
-    // Validate file type
     if (!file.type.startsWith('image/')) {
       alert('Please select an image file');
       return;
     }
 
-    // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
       alert('Image must be less than 5MB');
       return;
@@ -138,267 +156,379 @@ export default function ProfilePage() {
     professional: 'Professional',
   };
 
-  return (
-    <div className="max-w-4xl mx-auto space-y-8">
-      {/* Profile Header with Player Card */}
-      <div className="card">
-        <div className="flex flex-col md:flex-row md:items-start gap-6">
-          {/* Player Card */}
-          <div className="flex-shrink-0 flex justify-center">
-            <PlayerCard user={user} stats={playerStats} size="md" />
-          </div>
+  const skillColors: Record<string, string> = {
+    beginner: 'badge-gray',
+    intermediate: 'badge-blue',
+    advanced: 'badge-yellow',
+    professional: 'badge-green',
+  };
 
-          {/* Profile Info */}
-          <div className="flex-1">
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex items-center space-x-4">
-                <div className="relative">
-                  <div className="w-16 h-16 bg-green-600/20 rounded-full flex items-center justify-center overflow-hidden">
-                    {user.avatar_url ? (
-                      <Image
-                        src={user.avatar_url}
-                        alt={user.full_name}
-                        width={64}
-                        height={64}
-                        className="object-cover w-full h-full"
-                      />
-                    ) : (
-                      <User className="w-8 h-8 text-green-500" />
-                    )}
-                  </div>
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={uploadingPhoto}
-                    className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-600 rounded-full flex items-center justify-center hover:bg-green-700 transition-colors"
-                  >
-                    {uploadingPhoto ? (
-                      <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                      <Camera className="w-3 h-3 text-white" />
-                    )}
-                  </button>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handlePhotoUpload}
-                    className="hidden"
+  // Split rooms into upcoming and history
+  const today = new Date().toISOString().split('T')[0];
+  const allRooms = [...myRooms, ...joinedRooms.filter(jr => !myRooms.some(mr => mr.id === jr.id))];
+  const upcomingRooms = allRooms
+    .filter(r => r.date >= today && r.status !== 'completed' && r.status !== 'cancelled')
+    .sort((a, b) => a.date.localeCompare(b.date));
+  const completedRooms = allRooms
+    .filter(r => r.status === 'completed' || r.date < today)
+    .sort((a, b) => b.date.localeCompare(a.date));
+
+  const totalMatchesCreated = myRooms.length;
+  const totalMatchesJoined = joinedRooms.length;
+
+  return (
+    <div className="max-w-4xl mx-auto space-y-6 px-4 py-6">
+      {/* Top Section: Profile + PlayerCard side by side on desktop */}
+      <div className="grid md:grid-cols-[1fr_auto] gap-6">
+        {/* Profile Hero Card */}
+        <div className="card">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5">
+            {/* Avatar with camera overlay */}
+            <div className="relative flex-shrink-0">
+              <div className="w-28 h-28 rounded-full overflow-hidden ring-4 ring-neon-green/20 bg-dark-700 flex items-center justify-center">
+                {user.avatar_url ? (
+                  <Image
+                    src={user.avatar_url}
+                    alt={user.full_name}
+                    width={112}
+                    height={112}
+                    className="object-cover w-full h-full"
                   />
-                </div>
-                <div>
-                  <h1 className="text-2xl font-bold">{user.full_name}</h1>
-                  <p className="text-gray-600">{user.email}</p>
-                </div>
+                ) : (
+                  <User className="w-14 h-14 text-slate-600" />
+                )}
               </div>
-              {!isEditing ? (
-                <button
-                  onClick={() => setIsEditing(true)}
-                  className="btn-secondary flex items-center space-x-2"
-                >
-                  <Edit2 className="w-4 h-4" />
-                  <span>Edit</span>
-                </button>
-              ) : (
-                <div className="flex space-x-2">
-                  <button
-                    onClick={handleSave}
-                    className="btn-primary flex items-center space-x-2"
-                    disabled={saving}
-                  >
-                    <Save className="w-4 h-4" />
-                    <span>{saving ? 'Saving...' : 'Save'}</span>
-                  </button>
-                  <button
-                    onClick={() => setIsEditing(false)}
-                    className="btn-secondary flex items-center space-x-2"
-                  >
-                    <X className="w-4 h-4" />
-                    <span>Cancel</span>
-                  </button>
-                </div>
-              )}
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingPhoto}
+                className="absolute bottom-0 right-0 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200"
+                style={{
+                  background: 'linear-gradient(135deg, #00ff88 0%, #00cc6a 100%)',
+                  boxShadow: '0 0 12px rgba(0,255,136,0.3)',
+                }}
+              >
+                {uploadingPhoto ? (
+                  <div className="w-4 h-4 border-2 border-dark-950 border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Camera className="w-4 h-4 text-dark-950" />
+                )}
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handlePhotoUpload}
+                className="hidden"
+              />
             </div>
 
-            {isEditing ? (
-              <div className="grid md:grid-cols-2 gap-4">
-                <div>
-                  <label className="label">Full Name</label>
-                  <input
-                    type="text"
-                    value={editName}
-                    onChange={(e) => setEditName(e.target.value)}
-                    className="input"
-                  />
+            {/* Info */}
+            <div className="flex-1 text-center sm:text-left min-w-0">
+              <h1 className="font-heading text-2xl font-bold text-white">{user.full_name}</h1>
+
+              {/* Position + Skill badges */}
+              <div className="flex items-center gap-2 mt-2 justify-center sm:justify-start flex-wrap">
+                <span className="badge badge-green">
+                  <MapPin className="w-3 h-3 mr-1" />
+                  {positionLabels[user.preferred_position]}
+                </span>
+                <span className={`badge ${skillColors[user.skill_level]}`}>
+                  <Shield className="w-3 h-3 mr-1" />
+                  {skillLabels[user.skill_level]}
+                </span>
+              </div>
+
+              {/* Quick stats row */}
+              <div className="flex items-center gap-4 mt-3 justify-center sm:justify-start text-sm">
+                <div className="flex items-center gap-1.5 text-slate-400">
+                  <Trophy className="w-4 h-4 text-neon-amber" />
+                  <span className="font-medium">{user.games_played} played</span>
                 </div>
-                <div>
-                  <label className="label">Phone</label>
-                  <input
-                    type="tel"
-                    value={editPhone}
-                    onChange={(e) => setEditPhone(e.target.value)}
-                    className="input"
-                    placeholder="+994..."
-                  />
+                <div className="flex items-center gap-1.5 text-slate-400">
+                  <PlusCircle className="w-4 h-4 text-neon-cyan" />
+                  <span className="font-medium">{totalMatchesCreated} created</span>
                 </div>
-                <div>
-                  <label className="label">Age</label>
-                  <input
-                    type="number"
-                    value={editAge}
-                    onChange={(e) => setEditAge(e.target.value)}
-                    className="input"
-                    min={16}
-                    max={70}
-                  />
-                </div>
-                <div>
-                  <label className="label">Preferred Position</label>
-                  <select
-                    value={editPosition}
-                    onChange={(e) => setEditPosition(e.target.value as typeof editPosition)}
-                    className="input"
-                  >
-                    <option value="any">Any Position</option>
-                    <option value="goalkeeper">Goalkeeper</option>
-                    <option value="defender">Defender</option>
-                    <option value="midfielder">Midfielder</option>
-                    <option value="forward">Forward</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="label">Skill Level</label>
-                  <select
-                    value={editSkill}
-                    onChange={(e) => setEditSkill(e.target.value as typeof editSkill)}
-                    className="input"
-                  >
-                    <option value="beginner">Beginner</option>
-                    <option value="intermediate">Intermediate</option>
-                    <option value="advanced">Advanced</option>
-                    <option value="professional">Professional</option>
-                  </select>
-                </div>
-                <div className="md:col-span-2">
-                  <label className="label">Bio</label>
-                  <textarea
-                    value={editBio}
-                    onChange={(e) => setEditBio(e.target.value)}
-                    className="input"
-                    rows={3}
-                  />
+                <div className="flex items-center gap-1.5 text-slate-400">
+                  <Users className="w-4 h-4 text-neon-green" />
+                  <span className="font-medium">{totalMatchesJoined} joined</span>
                 </div>
               </div>
-            ) : (
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="space-y-3">
+
+              {/* Contact info (when not editing) */}
+              {!isEditing && (
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-3 text-sm">
+                  <div className="flex items-center gap-1.5 text-slate-400">
+                    <Mail className="w-3.5 h-3.5 text-slate-500" />
+                    <span className="truncate">{user.email}</span>
+                  </div>
                   {user.phone && (
-                    <div className="flex items-center space-x-3 text-gray-700">
-                      <Phone className="w-4 h-4 text-gray-500" />
+                    <div className="flex items-center gap-1.5 text-slate-400">
+                      <Phone className="w-3.5 h-3.5 text-slate-500" />
                       <span>{user.phone}</span>
                     </div>
                   )}
                   {user.age && (
-                    <div className="flex items-center space-x-3 text-gray-700">
-                      <Calendar className="w-4 h-4 text-gray-500" />
+                    <div className="flex items-center gap-1.5 text-slate-400">
+                      <Calendar className="w-3.5 h-3.5 text-slate-500" />
                       <span>{user.age} years old</span>
                     </div>
                   )}
-                  <div className="flex items-center space-x-3 text-gray-700">
-                    <Mail className="w-4 h-4 text-gray-500" />
-                    <span className="text-sm truncate">{user.email}</span>
-                  </div>
                 </div>
-                <div className="space-y-3">
-                  <div className="flex items-center space-x-3 text-gray-700">
-                    <MapPin className="w-4 h-4 text-gray-500" />
-                    <span>{positionLabels[user.preferred_position]}</span>
-                  </div>
-                  <div className="flex items-center space-x-3 text-gray-700">
-                    <Trophy className="w-4 h-4 text-gray-500" />
-                    <span>{skillLabels[user.skill_level]}</span>
-                  </div>
-                  <div className="flex items-center space-x-3 text-gray-700">
-                    <Trophy className="w-4 h-4 text-gray-500" />
-                    <span>{user.games_played} games played</span>
-                  </div>
-                </div>
-                {user.bio && (
-                  <div className="md:col-span-2 pt-3 border-t border-gray-200">
-                    <p className="text-gray-700 text-sm">{user.bio}</p>
+              )}
+
+              {user.bio && !isEditing && (
+                <p className="text-slate-400 text-sm leading-relaxed mt-2 line-clamp-2">{user.bio}</p>
+              )}
+
+              {/* Edit toggle */}
+              <div className="mt-4">
+                {!isEditing ? (
+                  <button
+                    onClick={() => setIsEditing(true)}
+                    className="btn-secondary flex items-center gap-2 text-sm"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                    <span>Edit Profile</span>
+                  </button>
+                ) : (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleSave}
+                      className="btn-primary flex items-center gap-2 text-sm"
+                      disabled={saving}
+                    >
+                      <Save className="w-4 h-4" />
+                      <span>{saving ? 'Saving...' : 'Save'}</span>
+                    </button>
+                    <button
+                      onClick={() => setIsEditing(false)}
+                      className="btn-secondary flex items-center gap-2 text-sm"
+                    >
+                      <X className="w-4 h-4" />
+                      <span>Cancel</span>
+                    </button>
                   </div>
                 )}
               </div>
-            )}
+            </div>
           </div>
+        </div>
+
+        {/* Player Card (shown prominently at top) */}
+        <div className="flex justify-center">
+          <PlayerCard user={user} stats={playerStats} size="lg" />
         </div>
       </div>
 
-      {/* My Rooms */}
+      {/* Edit Form */}
+      {isEditing && (
+        <div className="card animate-fade-in">
+          <h2 className="font-heading text-lg font-bold text-white mb-4">Edit Profile</h2>
+          <div className="grid md:grid-cols-2 gap-4">
+            <div>
+              <label className="label">Full Name</label>
+              <input
+                type="text"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                className="input"
+              />
+            </div>
+            <div>
+              <label className="label">Phone</label>
+              <input
+                type="tel"
+                value={editPhone}
+                onChange={(e) => setEditPhone(e.target.value)}
+                className="input"
+                placeholder="+994..."
+              />
+            </div>
+            <div>
+              <label className="label">Age</label>
+              <input
+                type="number"
+                value={editAge}
+                onChange={(e) => setEditAge(e.target.value)}
+                className="input"
+                min={16}
+                max={70}
+              />
+            </div>
+            <div>
+              <label className="label">Preferred Position</label>
+              <select
+                value={editPosition}
+                onChange={(e) => setEditPosition(e.target.value as typeof editPosition)}
+                className="input"
+              >
+                <option value="any">Any Position</option>
+                <option value="goalkeeper">Goalkeeper</option>
+                <option value="defender">Defender</option>
+                <option value="midfielder">Midfielder</option>
+                <option value="forward">Forward</option>
+              </select>
+            </div>
+            <div>
+              <label className="label">Skill Level</label>
+              <select
+                value={editSkill}
+                onChange={(e) => setEditSkill(e.target.value as typeof editSkill)}
+                className="input"
+              >
+                <option value="beginner">Beginner</option>
+                <option value="intermediate">Intermediate</option>
+                <option value="advanced">Advanced</option>
+                <option value="professional">Professional</option>
+              </select>
+            </div>
+            <div className="md:col-span-2">
+              <label className="label">Bio</label>
+              <textarea
+                value={editBio}
+                onChange={(e) => setEditBio(e.target.value)}
+                className="input"
+                rows={3}
+                placeholder="Tell others about yourself..."
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* My Upcoming Matches */}
       <div className="card">
-        <h2 className="text-xl font-bold mb-4">My Rooms</h2>
+        <h2 className="font-heading text-lg font-bold text-white mb-4 flex items-center gap-2">
+          <TrendingUp className="w-5 h-5 text-neon-green" />
+          Upcoming Matches
+          {upcomingRooms.length > 0 && (
+            <span className="badge badge-green text-xs ml-auto">{upcomingRooms.length}</span>
+          )}
+        </h2>
+
         {loadingRooms ? (
           <div className="flex items-center justify-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-green-500"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-neon-green"></div>
           </div>
-        ) : myRooms.length > 0 ? (
-          <div className="space-y-3">
-            {myRooms.map((room) => (
+        ) : upcomingRooms.length > 0 ? (
+          <div className="space-y-2">
+            {upcomingRooms.map((room) => (
               <Link
                 key={room.id}
                 href={`/rooms/${room.id}`}
-                className="flex items-center justify-between p-4 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                className="flex items-center justify-between p-4 rounded-lg bg-dark-900/50 border border-white/5 hover:border-neon-green/20 transition-all duration-200 group"
               >
-                <div>
-                  <h3 className="font-semibold">{room.title}</h3>
-                  <p className="text-sm text-gray-600">
-                    {room.stadium?.name} • {new Date(room.date).toLocaleDateString()}
-                  </p>
+                <div className="min-w-0 flex-1">
+                  <h3 className="font-semibold text-white text-sm truncate group-hover:text-neon-green transition-colors">
+                    {room.title}
+                  </h3>
+                  <div className="flex items-center gap-3 mt-1 text-slate-500 text-xs">
+                    <span className="flex items-center gap-1">
+                      <MapPin className="w-3 h-3 flex-shrink-0" />
+                      <span className="truncate">{room.stadium_name || room.stadium?.name}</span>
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Calendar className="w-3 h-3" />
+                      {formatDateDisplay(room.date)}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      {room.start_time}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex items-center space-x-4 text-gray-600">
-                  <span>{room.current_players}/{room.max_players}</span>
-                  <span className={`badge ${room.status === 'open' ? 'badge-green' : room.status === 'completed' ? 'badge-blue' : 'badge-gray'}`}>
-                    {room.status}
-                  </span>
+                <div className="flex items-center gap-3 ml-3 flex-shrink-0">
+                  <div className="flex items-center gap-1 text-slate-400 text-xs">
+                    <Users className="w-3 h-3" />
+                    <span>{room.current_players}/{room.max_players}</span>
+                  </div>
+                  {room.creator_id === user.id && (
+                    <span className="badge badge-blue text-[10px]">Host</span>
+                  )}
+                  <ChevronRight className="w-4 h-4 text-slate-600 group-hover:text-neon-green transition-colors" />
                 </div>
               </Link>
             ))}
           </div>
         ) : (
-          <p className="text-gray-600">You haven&apos;t created any rooms yet.</p>
+          <div className="text-center py-8">
+            <Calendar className="w-10 h-10 text-slate-600 mx-auto mb-2" />
+            <p className="text-slate-500 text-sm">No upcoming matches</p>
+            <Link href="/rooms" className="text-neon-green text-sm mt-2 inline-block hover:underline">
+              Browse matches
+            </Link>
+          </div>
         )}
       </div>
 
-      {/* Joined Rooms */}
+      {/* Match History */}
       <div className="card">
-        <h2 className="text-xl font-bold mb-4">Joined Matches</h2>
+        <h2 className="font-heading text-lg font-bold text-white mb-4 flex items-center gap-2">
+          <History className="w-5 h-5 text-neon-amber" />
+          Match History
+          {completedRooms.length > 0 && (
+            <span className="text-sm text-slate-500 font-normal ml-auto">{completedRooms.length} matches</span>
+          )}
+        </h2>
+
         {loadingRooms ? (
           <div className="flex items-center justify-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-green-500"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-neon-green"></div>
           </div>
-        ) : joinedRooms.length > 0 ? (
-          <div className="space-y-3">
-            {joinedRooms.map((room) => (
+        ) : completedRooms.length > 0 ? (
+          <div className="space-y-2">
+            {completedRooms.slice(0, 5).map((room) => (
               <Link
                 key={room.id}
                 href={`/rooms/${room.id}`}
-                className="flex items-center justify-between p-4 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                className="flex items-center justify-between p-4 rounded-lg bg-dark-900/50 border border-white/5 hover:border-white/10 transition-all duration-200 group"
               >
-                <div>
-                  <h3 className="font-semibold">{room.title}</h3>
-                  <p className="text-sm text-gray-600">
-                    {room.stadium?.name}
-                  </p>
+                <div className="min-w-0 flex-1">
+                  <h3 className="font-semibold text-slate-300 text-sm truncate group-hover:text-white transition-colors">
+                    {room.title}
+                  </h3>
+                  <div className="flex items-center gap-2 mt-1 text-slate-500 text-xs">
+                    <MapPin className="w-3 h-3 flex-shrink-0" />
+                    <span className="truncate">{room.stadium_name || room.stadium?.name}</span>
+                    <span>-</span>
+                    <span>{formatDateDisplay(room.date)}</span>
+                  </div>
                 </div>
-                <div className="flex items-center space-x-2 text-gray-600">
-                  <Clock className="w-4 h-4" />
-                  <span>{new Date(room.date).toLocaleDateString()} • {room.start_time}</span>
+                <div className="flex items-center gap-3 ml-3 flex-shrink-0">
+                  <div className="flex items-center gap-1 text-slate-400 text-xs">
+                    <Users className="w-3 h-3" />
+                    <span>{room.current_players}/{room.max_players}</span>
+                  </div>
+                  <span className="badge badge-gray">{room.status}</span>
+                  <ChevronRight className="w-4 h-4 text-slate-600 group-hover:text-slate-400 transition-colors" />
                 </div>
               </Link>
             ))}
+            {completedRooms.length > 5 && (
+              <div className="text-center pt-2">
+                <span className="text-xs text-slate-500">
+                  +{completedRooms.length - 5} more matches
+                </span>
+              </div>
+            )}
           </div>
         ) : (
-          <p className="text-gray-600">You haven&apos;t joined any matches yet.</p>
+          <div className="text-center py-8">
+            <History className="w-10 h-10 text-slate-600 mx-auto mb-2" />
+            <p className="text-slate-500 text-sm">No match history yet</p>
+          </div>
         )}
+      </div>
+
+      {/* Player Stats Card (full width, below matches) */}
+      <div className="card md:hidden">
+        <h2 className="font-heading text-lg font-bold text-white mb-4 flex items-center gap-2">
+          <Zap className="w-5 h-5 text-neon-amber" />
+          Player Card
+        </h2>
+        <div className="flex justify-center">
+          <PlayerCard user={user} stats={playerStats} size="lg" />
+        </div>
       </div>
     </div>
   );

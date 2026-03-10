@@ -1,6 +1,6 @@
 import { Notification, NotificationType } from '@/types';
 
-const STORAGE_KEY = 'zapolya_notifications';
+const STORAGE_KEY = 'tapadam_notifications';
 
 function getNotificationsFromStorage(): Notification[] {
   if (typeof window === 'undefined') return [];
